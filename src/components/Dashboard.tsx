@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { CalendarDays, Brain, Zap } from 'lucide-react';
 
 export function Dashboard() {
+  console.log('Dashboard component is rendering');
+  
   const { 
     progress, 
     addTask, 
@@ -16,6 +18,8 @@ export function Dashboard() {
     deleteTask, 
     getTodayTasks 
   } = useTaskManager();
+
+  console.log('useTaskManager data:', { progress, tasksLength: getTodayTasks().length });
 
   const todayTasks = getTodayTasks();
   const upcomingTasks = todayTasks.filter(task => !task.completed);
