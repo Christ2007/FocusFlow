@@ -20,6 +20,7 @@ export function Dashboard() {
   } = useTaskManager();
 
   console.log('useTaskManager data:', { progress, tasksLength: getTodayTasks().length });
+  console.log('addTask function:', addTask);
 
   const todayTasks = getTodayTasks();
   const upcomingTasks = todayTasks.filter(task => !task.completed);
@@ -28,19 +29,25 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+      <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-foreground">
-                ADHD Focus Hub
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                FocusFlowN
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                 Transform your day into an adventure! 🚀
               </p>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="text-xs sm:text-sm text-muted-foreground sm:hidden">
+                {new Date().toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric' 
+                })}
+              </div>
               <Button variant="outline" size="sm" className="hidden sm:flex">
                 <CalendarDays className="h-4 w-4 mr-2" />
                 Today: {new Date().toLocaleDateString('en-US', { 
@@ -54,10 +61,10 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-          {/* Left Column - Main Tasks */}
-          <div className="md:col-span-1 lg:col-span-2 space-y-4 md:space-y-6">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+          {/* Main Content - Full width on mobile, 2/3 on desktop */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Progress Overview */}
             <ProgressBar progress={progress} />
 
@@ -130,8 +137,8 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column - Tools & Achievements */}
-          <div className="space-y-6">
+          {/* Sidebar - Full width on mobile, 1/3 on desktop */}
+          <div className="space-y-4 sm:space-y-6">
             {/* Focus Timer */}
             <FocusTimer />
 
@@ -139,7 +146,7 @@ export function Dashboard() {
             <BadgeShowcase badges={progress.badges} />
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="bg-gradient-focus p-4 rounded-lg text-focus-foreground">
                 <div className="text-2xl font-bold">{progress.totalPoints}</div>
                 <div className="text-sm opacity-90">Total Points</div>
@@ -151,9 +158,9 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* ADHD Tips */}
-            <div className="bg-card p-4 rounded-lg border border-border shadow-card">
-              <h3 className="font-semibold mb-3 text-primary">💡 ADHD Focus Tips</h3>
+            {/* Focus Tips - Hidden on small mobile, visible on larger screens */}
+            <div className="hidden sm:block bg-card p-4 rounded-lg border border-border shadow-card">
+              <h3 className="font-semibold mb-3 text-primary">💡 Focus Tips</h3>
               <ul className="text-sm text-muted-foreground space-y-2">
                 <li>• Break large tasks into smaller steps</li>
                 <li>• Use the Pomodoro timer for focus sessions</li>

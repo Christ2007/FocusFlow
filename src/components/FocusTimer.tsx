@@ -72,24 +72,24 @@ export function FocusTimer({ className }: FocusTimerProps) {
     : ((5 * 60 - timeLeft) / (5 * 60)) * 100;
 
   return (
-    <Card className={`p-6 ${className}`}>
-      <div className="text-center space-y-4">
+    <Card className={`p-4 sm:p-6 ${className}`}>
+      <div className="text-center space-y-3 sm:space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Timer className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-lg">
+        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
+          <Timer className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+          <h3 className="font-semibold text-base sm:text-lg">
             {mode === 'focus' ? 'Focus Time' : 'Break Time'}
           </h3>
         </div>
 
         {/* Timer Display */}
         <div className="relative">
-          <div className="text-2xl sm:text-3xl lg:text-4xl font-mono font-bold text-foreground mb-4">
+          <div className="text-3xl sm:text-4xl font-mono font-bold text-foreground mb-3 sm:mb-4">
             {formatTime(timeLeft)}
           </div>
           
           {/* Progress Ring Visual */}
-          <div className="mx-auto mb-6 relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32">
+          <div className="mx-auto mb-4 sm:mb-6 relative w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
               {/* Background circle */}
               <circle
@@ -117,7 +117,7 @@ export function FocusTimer({ className }: FocusTimerProps) {
             
             {/* Mode Icon in center */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className={`text-2xl p-3 rounded-full ${
+              <div className={`text-lg sm:text-2xl p-2 sm:p-3 rounded-full ${
                 mode === 'focus' 
                   ? 'bg-focus/10 text-focus' 
                   : 'bg-energy/10 text-energy'
@@ -129,12 +129,12 @@ export function FocusTimer({ className }: FocusTimerProps) {
         </div>
 
         {/* Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-2 sm:gap-3">
           <Button
-            size="lg"
+            size="default"
             variant={mode === 'focus' ? 'focus' : 'energy'}
             onClick={toggleTimer}
-            className="flex-1"
+            className="flex-1 h-10 sm:h-12 text-sm sm:text-base"
           >
             {isRunning ? (
               <>
@@ -150,11 +150,12 @@ export function FocusTimer({ className }: FocusTimerProps) {
           </Button>
           
           <Button
-            size="lg"
+            size="default"
             variant="outline"
             onClick={resetTimer}
+            className="h-10 sm:h-12 w-10 sm:w-12 p-0"
           >
-            <RotateCcw className="h-5 w-5" />
+            <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
 
@@ -162,13 +163,13 @@ export function FocusTimer({ className }: FocusTimerProps) {
         <Button
           variant="ghost"
           onClick={switchMode}
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="text-xs sm:text-sm text-muted-foreground hover:text-foreground h-8 sm:h-10"
         >
           Switch to {mode === 'focus' ? 'Break' : 'Focus'} Mode
         </Button>
 
         {/* Tips */}
-        <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/50 rounded-lg">
+        <div className="text-xs text-muted-foreground mt-3 sm:mt-4 p-2 sm:p-3 bg-muted/50 rounded-lg">
           {mode === 'focus' ? (
             <div>
               💡 <strong>Focus tip:</strong> Minimize distractions and work on one task at a time.

@@ -21,8 +21,11 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
     priority: 'medium' as Task['priority']
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     console.log('Form submitted with data:', taskData);
     
     if (!taskData.name || !taskData.startTime || !taskData.endTime) {
@@ -30,6 +33,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
       return;
     }
 
+    console.log('Calling onAddTask with:', taskData);
     onAddTask(taskData);
     
     // Reset form
@@ -60,7 +64,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
 
   if (!isExpanded) {
     return (
-      <Card className="p-4 border-dashed border-2 border-primary/30 hover:border-primary/50 transition-colors">
+      <Card className="p-3 sm:p-4 border-dashed border-2 border-primary/30 hover:border-primary/50 transition-colors">
         <Button
           onClick={() => {
             console.log('Expanding form');
@@ -73,10 +77,11 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
             }));
           }}
           variant="ghost"
-          className="w-full h-12 text-muted-foreground hover:text-primary"
+          className="w-full h-12 sm:h-14 text-muted-foreground hover:text-primary text-sm sm:text-base"
         >
-          <Plus className="h-5 w-5 mr-2" />
-          Add a new task...
+          <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+          <span className="hidden sm:inline">Add a new task...</span>
+          <span className="sm:hidden">Add task...</span>
         </Button>
       </Card>
     );
@@ -100,14 +105,17 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
   });
 
   return (
-    <Card className="p-4 animate-slide-up">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Card className="p-3 sm:p-4 animate-slide-up">
+      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
         {/* Task Name */}
         <Input
           placeholder="What do you want to accomplish?"
           value={taskData.name}
-          onChange={(e) => setTaskData(prev => ({ ...prev, name: e.target.value }))}
-          className="text-base"
+          onChange={(e) => {
+            console.log('Task name changed:', e.target.value);
+            setTaskData(prev => ({ ...prev, name: e.target.value }));
+          }}
+          className="text-sm sm:text-base h-11 sm:h-12"
           autoFocus
         />
 
@@ -168,6 +176,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
               value={taskData.startTime}
               onChange={(e) => {
                 const startTime = e.target.value;
+                console.log('Start time changed:', startTime);
                 setTaskData(prev => ({ 
                   ...prev, 
                   startTime,
@@ -181,7 +190,10 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
             <Input
               type="time"
               value={taskData.endTime}
-              onChange={(e) => setTaskData(prev => ({ ...prev, endTime: e.target.value }))}
+              onChange={(e) => {
+                console.log('End time changed:', e.target.value);
+                setTaskData(prev => ({ ...prev, endTime: e.target.value }));
+              }}
             />
           </div>
         </div>
@@ -202,13 +214,23 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
         </Select>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex gap-2">
           <Button 
-            type="submit" 
-            className="flex-1 min-h-[44px]" 
+            type="button" 
+            className="flex-1 h-11 sm:h-12 text-sm sm:text-base font-medium" 
             disabled={!taskData.name || !taskData.startTime || !taskData.endTime}
             onClick={(e) => {
-              console.log('Button clicked', { disabled: !taskData.name || !taskData.startTime || !taskData.endTime });
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Add Task button clicked', { 
+                disabled: !taskData.name || !taskData.startTime || !taskData.endTime,
+                taskData 
+              });
+              handleSubmit();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              console.log('Touch end on Add Task button');
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -217,7 +239,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
           <Button 
             type="button" 
             variant="ghost" 
-            className="min-h-[44px]"
+            className="h-11 sm:h-12 px-3 sm:px-4 text-sm sm:text-base"
             onClick={() => setIsExpanded(false)}
           >
             Cancel

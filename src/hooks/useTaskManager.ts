@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react';
 import { Task, UserProgress, Badge } from '@/types/tasks';
 import { useToast } from '@/hooks/use-toast';
 
+// Mobile-compatible UUID generator
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for mobile browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 const STORAGE_KEYS = {
   TASKS: 'adhd_tasks',
   PROGRESS: 'adhd_progress'
@@ -70,16 +83,23 @@ export function useTaskManager() {
   }, [tasks]);
 
   const addTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'completed'>) => {
+    console.log('addTask called with:', taskData);
     const newTask: Task = {
       ...taskData,
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       completed: false,
       createdAt: new Date()
     };
     
-    setTasks(prev => [...prev, newTask]);
+    console.log('Creating new task:', newTask);
+    setTasks(prev => {
+      const newTasks = [...prev, newTask];
+      console.log('Updated tasks array:', newTasks);
+      return newTasks;
+    });
+    
     toast({
-      title: "Task Added! 🎯",
+      title: "Task Added! ",
       description: `"${newTask.name}" is ready to tackle!`
     });
   };
