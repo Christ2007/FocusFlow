@@ -29,7 +29,7 @@ export function TaskCard({ task, onComplete, onUncomplete, onDelete }: TaskCardP
       <div className="flex items-start gap-3">
         {/* Task Icon */}
         <div className={cn(
-          "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-xl",
+          "flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-lg sm:text-xl",
           `bg-${category.color}/10 border border-${category.color}/20`
         )}>
           {task.icon}
@@ -51,7 +51,7 @@ export function TaskCard({ task, onComplete, onUncomplete, onDelete }: TaskCardP
               variant="ghost"
               onClick={task.completed ? onUncomplete : onComplete}
               className={cn(
-                "flex-shrink-0 p-1 h-8 w-8",
+                "flex-shrink-0 p-1 h-8 w-8 sm:h-9 sm:w-9",
                 task.completed && "text-primary hover:text-primary/80"
               )}
             >
@@ -64,7 +64,7 @@ export function TaskCard({ task, onComplete, onUncomplete, onDelete }: TaskCardP
           </div>
           
           {/* Time and Category */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground mb-3">
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               <span>{task.startTime} - {task.endTime}</span>

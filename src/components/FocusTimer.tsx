@@ -84,13 +84,13 @@ export function FocusTimer({ className }: FocusTimerProps) {
 
         {/* Timer Display */}
         <div className="relative">
-          <div className="text-4xl font-mono font-bold text-foreground mb-4">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-mono font-bold text-foreground mb-4">
             {formatTime(timeLeft)}
           </div>
           
           {/* Progress Ring Visual */}
-          <div className="mx-auto mb-6 relative w-32 h-32">
-            <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
+          <div className="mx-auto mb-6 relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
               {/* Background circle */}
               <circle
                 cx="60"
@@ -129,7 +129,7 @@ export function FocusTimer({ className }: FocusTimerProps) {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button
             size="lg"
             variant={mode === 'focus' ? 'focus' : 'energy'}

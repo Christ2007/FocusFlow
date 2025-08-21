@@ -17,7 +17,7 @@ export function ProgressBar({ progress }: ProgressBarProps) {
     <Card className="p-6 bg-gradient-success shadow-success animate-slide-up">
       <div className="space-y-6">
         {/* Header Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
               <Target className="h-5 w-5 text-primary-foreground/80" />

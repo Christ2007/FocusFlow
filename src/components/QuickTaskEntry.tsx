@@ -23,7 +23,12 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskData.name || !taskData.startTime || !taskData.endTime) return;
+    console.log('Form submitted with data:', taskData);
+    
+    if (!taskData.name || !taskData.startTime || !taskData.endTime) {
+      console.log('Validation failed:', { name: taskData.name, startTime: taskData.startTime, endTime: taskData.endTime });
+      return;
+    }
 
     onAddTask(taskData);
     
@@ -58,11 +63,13 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
       <Card className="p-4 border-dashed border-2 border-primary/30 hover:border-primary/50 transition-colors">
         <Button
           onClick={() => {
+            console.log('Expanding form');
             setIsExpanded(true);
+            const currentTime = getCurrentTime();
             setTaskData(prev => ({
               ...prev,
-              startTime: getCurrentTime(),
-              endTime: getEndTime(getCurrentTime())
+              startTime: currentTime,
+              endTime: getEndTime(currentTime)
             }));
           }}
           variant="ghost"
@@ -105,7 +112,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
         />
 
         {/* Category and Icon Selection */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Select 
             value={taskData.category} 
             onValueChange={(value: TaskCategory) => {
@@ -153,7 +160,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
         </div>
 
         {/* Time Range */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-sm text-muted-foreground mb-1 block">Start Time</label>
             <Input
@@ -195,14 +202,22 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
         </Select>
 
         {/* Actions */}
-        <div className="flex gap-2">
-          <Button type="submit" className="flex-1" disabled={!taskData.name || !taskData.startTime || !taskData.endTime}>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            type="submit" 
+            className="flex-1 min-h-[44px]" 
+            disabled={!taskData.name || !taskData.startTime || !taskData.endTime}
+            onClick={(e) => {
+              console.log('Button clicked', { disabled: !taskData.name || !taskData.startTime || !taskData.endTime });
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Task
           </Button>
           <Button 
             type="button" 
             variant="ghost" 
+            className="min-h-[44px]"
             onClick={() => setIsExpanded(false)}
           >
             Cancel

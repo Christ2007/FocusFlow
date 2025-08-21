@@ -41,7 +41,7 @@ export function Dashboard() {
             </div>
             
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="hidden sm:flex">
                 <CalendarDays className="h-4 w-4 mr-2" />
                 Today: {new Date().toLocaleDateString('en-US', { 
                   weekday: 'long', 
@@ -55,9 +55,9 @@ export function Dashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
           {/* Left Column - Main Tasks */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="md:col-span-1 lg:col-span-2 space-y-4 md:space-y-6">
             {/* Progress Overview */}
             <ProgressBar progress={progress} />
 
@@ -139,7 +139,7 @@ export function Dashboard() {
             <BadgeShowcase badges={progress.badges} />
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-gradient-focus p-4 rounded-lg text-focus-foreground">
                 <div className="text-2xl font-bold">{progress.totalPoints}</div>
                 <div className="text-sm opacity-90">Total Points</div>
