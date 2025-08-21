@@ -4,12 +4,16 @@ import { Card } from "@/components/ui/card";
 import { ArrowRight, Brain, Clock, Target, Trophy, Zap, CheckCircle, Timer, Calendar, Sparkles, Users, BarChart3, LogIn } from "lucide-react";
 import { AuthPage } from './auth/AuthPage';
 import { AboutPage } from './AboutPage';
+import { PrivacyPolicy } from './PrivacyPolicy';
+import { TermsOfService } from './TermsOfService';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function Homepage() {
   const { user } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   if (showAuth) {
     return <AuthPage onBackToHome={() => setShowAuth(false)} />;
@@ -17,6 +21,14 @@ export function Homepage() {
 
   if (showAbout) {
     return <AboutPage onBackToHome={() => setShowAbout(false)} />;
+  }
+
+  if (showPrivacy) {
+    return <PrivacyPolicy onBackToHome={() => setShowPrivacy(false)} />;
+  }
+
+  if (showTerms) {
+    return <TermsOfService onBackToHome={() => setShowTerms(false)} />;
   }
 
   const features = [
@@ -237,9 +249,9 @@ export function Homepage() {
           <div className="flex justify-center gap-6 text-sm text-muted-foreground">
             <span>© 2025 FocusFlow</span>
             <span>•</span>
-            <span>Privacy Policy</span>
+            <button onClick={() => setShowPrivacy(true)} className="hover:underline">Privacy Policy</button>
             <span>•</span>
-            <span>Terms of Service</span>
+            <button onClick={() => setShowTerms(true)} className="hover:underline">Terms of Service</button>
             <span>•</span>
             <span>Support</span>
           </div>
