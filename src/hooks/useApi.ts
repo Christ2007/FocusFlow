@@ -1,12 +1,11 @@
 import { useAuth } from '@/contexts/AuthContext';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { buildApiUrl } from '@/lib/apiConfig';
 
 export const useApi = () => {
   const { token } = useAuth();
 
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = buildApiUrl(endpoint);
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',

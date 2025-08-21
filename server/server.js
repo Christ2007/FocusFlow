@@ -30,10 +30,15 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
-}));
+// In development, reflect the request origin to simplify LAN testing
+const corsOptions = {
+  origin:
+    (process.env.NODE_ENV || 'development') === 'development'
+      ? true
+      : (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:8080'),
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -128,8 +133,8 @@ app.use((error, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+app.listen(PORT, '192.168.173.75', () => {
+  console.log(`🚀 Server running on http://192.168.173.75:${PORT}`);
   console.log(`📱 Client URL: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
   console.log(`🗄️  Database: ${process.env.MONGODB_URI ? 'MongoDB Atlas' : 'Local MongoDB'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);

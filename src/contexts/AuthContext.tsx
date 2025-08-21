@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { buildApiUrl, API_BASE_URL } from '@/lib/apiConfig';
 
 interface User {
   id: string;
@@ -43,7 +44,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// API base is now configured via Vite env (VITE_API_BASE_URL) with smart hostname fallback.
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -52,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // API helper function
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = buildApiUrl(endpoint);
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -85,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('API call failed:', error);
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Cannot connect to server. Make sure the backend is running on http://localhost:5000');
+        throw new Error(`Cannot connect to server. Make sure the backend is running at ${API_BASE_URL}`);
       }
       throw error;
     }
@@ -118,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (credentials: { login: string; password: string }) => {
     try {
       console.log('Attempting login with:', credentials);
-      console.log('API URL:', `${API_BASE_URL}/auth/login`);
+      console.log('API URL:', buildApiUrl('/auth/login'));
       
       const response = await apiCall('/auth/login', {
         method: 'POST',
