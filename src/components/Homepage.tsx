@@ -6,6 +6,7 @@ import { AuthPage } from './auth/AuthPage';
 import { AboutPage } from './AboutPage';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { TermsOfService } from './TermsOfService';
+import { SupportPage } from './SupportPage';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function Homepage() {
@@ -14,6 +15,7 @@ export function Homepage() {
   const [showAbout, setShowAbout] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
 
   if (showAuth) {
     return <AuthPage onBackToHome={() => setShowAuth(false)} />;
@@ -29,6 +31,10 @@ export function Homepage() {
 
   if (showTerms) {
     return <TermsOfService onBackToHome={() => setShowTerms(false)} />;
+  }
+
+  if (showSupport) {
+    return <SupportPage onBackToHome={() => setShowSupport(false)} />;
   }
 
   const features = [
@@ -253,7 +259,7 @@ export function Homepage() {
             <span>•</span>
             <button onClick={() => setShowTerms(true)} className="hover:underline">Terms of Service</button>
             <span>•</span>
-            <span>Support</span>
+            <button onClick={() => setShowSupport(true)} className="hover:underline">Support</button>
           </div>
         </div>
       </footer>
