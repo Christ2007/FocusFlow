@@ -133,8 +133,8 @@ app.use((error, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, '192.168.173.75', () => {
-  console.log(`🚀 Server running on http://192.168.173.75:${PORT}`);
+app.listen(PORT, '10.0.0.34', () => {
+  console.log(`🚀 Server running on ${process.env.SERVER_URL}`);
   console.log(`📱 Client URL: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
   console.log(`🗄️  Database: ${process.env.MONGODB_URI ? 'MongoDB Atlas' : 'Local MongoDB'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
