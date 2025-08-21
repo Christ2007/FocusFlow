@@ -4,8 +4,9 @@ import { QuickTaskEntry } from './QuickTaskEntry';
 import { FocusTimer } from './FocusTimer';
 import { BadgeShowcase } from './BadgeShowcase';
 import { useTaskManager } from '@/hooks/useTaskManager';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Brain, Zap } from 'lucide-react';
+import { CalendarDays, Brain, Zap, LogOut } from 'lucide-react';
 
 export function Dashboard() {
   console.log('Dashboard component is rendering');
@@ -18,6 +19,8 @@ export function Dashboard() {
     deleteTask, 
     getTodayTasks 
   } = useTaskManager();
+  
+  const { logout, user } = useAuth();
 
   console.log('useTaskManager data:', { progress, tasksLength: getTodayTasks().length });
   console.log('addTask function:', addTask);
@@ -34,7 +37,7 @@ export function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                FocusFlowN
+                FocusFlow
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                 Transform your day into an adventure! 🚀
@@ -55,6 +58,15 @@ export function Dashboard() {
                   month: 'short', 
                   day: 'numeric' 
                 })}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={logout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>
