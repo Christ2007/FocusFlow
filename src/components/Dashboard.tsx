@@ -21,6 +21,7 @@ export function Dashboard() {
   } = useTaskManager();
   
   const { logout, user } = useAuth();
+  
 
   console.log('useTaskManager data:', { progress, tasksLength: getTodayTasks().length });
   console.log('addTask function:', addTask);
