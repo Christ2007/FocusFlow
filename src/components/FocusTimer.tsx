@@ -14,6 +14,37 @@ export function FocusTimer({ className }: FocusTimerProps) {
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
   const { toast } = useToast();
 
+  // Create alarm sound function
+  const playAlarm = () => {
+    // Create audio context for alarm sound
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Create a series of beeps for the alarm
+    const playBeep = (frequency: number, duration: number, delay: number) => {
+      setTimeout(() => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+      }, delay);
+    };
+
+    // Play alarm sequence - 3 beeps
+    playBeep(800, 0.2, 0);
+    playBeep(800, 0.2, 300);
+    playBeep(800, 0.2, 600);
+  };
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -45,6 +76,9 @@ export function FocusTimer({ className }: FocusTimerProps) {
       }, 1000);
     } else if (timeLeft === 0) {
       setIsRunning(false);
+      
+      // Play alarm sound when timer ends
+      playAlarm();
       
       if (mode === 'focus') {
         toast({
