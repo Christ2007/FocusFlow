@@ -142,8 +142,14 @@ router.post('/login', [
     }
 
     // Update user streak and last active date
-    user.updateStreak();
-    await user.save();
+    console.log('Before streak update - Current streak:', user.progress.streakDays);
+    const streakUpdated = user.updateStreak();
+    if (streakUpdated) {
+      await user.save();
+      console.log('User streak updated and saved to database. New streak:', user.progress.streakDays);
+    } else {
+      console.log('No streak update needed');
+    }
 
     // Generate token
     const token = generateToken(user._id);

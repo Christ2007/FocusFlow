@@ -181,7 +181,7 @@ router.put('/:id', authenticateToken, [
 });
 
 // @route   PUT /api/tasks/:id/complete
-// @desc    Mark task as completed
+// @desc    Mark task as complete
 // @access  Private
 router.put('/:id/complete', authenticateToken, async (req, res) => {
   try {
@@ -206,10 +206,16 @@ router.put('/:id/complete', authenticateToken, async (req, res) => {
 
     await task.markCompleted();
 
-    // Update user progress
+    // Update user progress and streak
     const user = req.user;
     user.progress.totalPoints += task.points;
-    user.updateStreak();
+    
+    // Update streak when completing first task of the day
+    const streakUpdated = user.updateStreak();
+    if (streakUpdated) {
+      console.log('User streak updated from task completion');
+    }
+    
     await user.save();
 
     // Check for new badges (simplified version)

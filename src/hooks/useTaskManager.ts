@@ -52,15 +52,17 @@ export function useTaskManager() {
             completedAt: task.completedAt ? new Date(task.completedAt) : undefined
           })));
           
+          console.log('Setting progress from user profile:', userProfile.user.progress);
           setProgress({
-            streakDays: userProfile.user.progress.streakDays,
-            totalPoints: userProfile.user.progress.totalPoints,
-            badges: userProfile.user.progress.badges.map((badge: any) => ({
+            streakDays: userProfile.user.progress.streakDays || 0,
+            totalPoints: userProfile.user.progress.totalPoints || 0,
+            badges: userProfile.user.progress.badges?.map((badge: any) => ({
               ...badge,
               earnedAt: new Date(badge.earnedAt)
-            })),
-            todayProgress: tasksResponse.stats.today
+            })) || [],
+            todayProgress: { completed: 0, total: 0, points: 0 }
           });
+          console.log('Progress state updated with streak:', userProfile.user.progress.streakDays);
         } catch (error) {
           console.error('Failed to load data from API:', error);
           // Fallback to localStorage

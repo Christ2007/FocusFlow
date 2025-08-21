@@ -39,9 +39,6 @@ export function Dashboard() {
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                 FocusFlow
               </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                Transform your day into an adventure! 🚀
-              </p>
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3">

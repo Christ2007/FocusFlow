@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema({
   },
   progress: {
     totalPoints: { type: Number, default: 0 },
-    streakDays: { type: Number, default: 0 },
+    streakDays: { type: Number, default: 1 },
     lastActiveDate: { type: Date, default: Date.now },
     badges: [{
       id: String,
@@ -72,22 +72,38 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Update streak method
 userSchema.methods.updateStreak = function() {
-  const today = new Date().toDateString();
-  const lastActive = this.progress.lastActiveDate.toDateString();
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const lastActiveDate = new Date(this.progress.lastActiveDate);
+  const lastActiveDay = new Date(lastActiveDate.getFullYear(), lastActiveDate.getMonth(), lastActiveDate.getDate());
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
   
-  if (lastActive === today) {
-    // Already active today, no change
-    return;
-  } else if (lastActive === yesterday) {
-    // Consecutive day, increment streak
-    this.progress.streakDays += 1;
-  } else {
-    // Streak broken, reset to 1
-    this.progress.streakDays = 1;
+  console.log('Updating streak:', { 
+    today: today.toDateString(), 
+    lastActiveDay: lastActiveDay.toDateString(), 
+    yesterday: yesterday.toDateString(), 
+    currentStreak: this.progress.streakDays 
+  });
+  
+  // Check if already active today
+  if (today.getTime() === lastActiveDay.getTime()) {
+    console.log('Already active today, no streak change');
+    return false; // No change needed
   }
   
-  this.progress.lastActiveDate = new Date();
+  // Check if last active was yesterday (consecutive)
+  if (yesterday.getTime() === lastActiveDay.getTime()) {
+    this.progress.streakDays += 1;
+    console.log('Consecutive day, streak incremented to:', this.progress.streakDays);
+  } else {
+    // First time or streak broken, set to 1
+    this.progress.streakDays = 1;
+    console.log('Streak set to 1 (first time or broken streak)');
+  }
+  
+  this.progress.lastActiveDate = now;
+  console.log('Updated lastActiveDate to:', this.progress.lastActiveDate);
+  return true; // Indicates streak was updated
 };
 
 export default mongoose.model('User', userSchema);
