@@ -28,13 +28,21 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
     }
     console.log('Form submitted with data:', taskData);
     
-    if (!taskData.name || !taskData.startTime || !taskData.endTime) {
-      console.log('Validation failed:', { name: taskData.name, startTime: taskData.startTime, endTime: taskData.endTime });
+    if (!taskData.name.trim()) {
+      console.log('Validation failed: Task name is required');
       return;
     }
 
-    console.log('Calling onAddTask with:', taskData);
-    onAddTask(taskData);
+    // Auto-fill times if missing
+    let finalTaskData = { ...taskData };
+    if (!finalTaskData.startTime || !finalTaskData.endTime) {
+      const currentTime = getCurrentTime();
+      finalTaskData.startTime = finalTaskData.startTime || currentTime;
+      finalTaskData.endTime = finalTaskData.endTime || getEndTime(finalTaskData.startTime);
+    }
+
+    console.log('Calling onAddTask with:', finalTaskData);
+    onAddTask(finalTaskData);
     
     // Reset form
     setTaskData({
@@ -218,19 +226,15 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
           <Button 
             type="button" 
             className="flex-1 h-11 sm:h-12 text-sm sm:text-base font-medium" 
-            disabled={!taskData.name || !taskData.startTime || !taskData.endTime}
+            disabled={!taskData.name.trim()}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               console.log('Add Task button clicked', { 
-                disabled: !taskData.name || !taskData.startTime || !taskData.endTime,
+                disabled: !taskData.name.trim(),
                 taskData 
               });
               handleSubmit();
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              console.log('Touch end on Add Task button');
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
