@@ -1,28 +1,22 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ArrowRight, Brain, Clock, Target, Trophy, Zap, CheckCircle, Timer, Calendar, Sparkles, Users, BarChart3, LogIn } from "lucide-react";
+import { AuthPage } from './auth/AuthPage';
+import { AboutPage } from './AboutPage';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthPage } from '@/components/auth/AuthPage';
-import { 
-  Brain, 
-  Target, 
-  Trophy, 
-  Timer, 
-  Users, 
-  Zap, 
-  CheckCircle, 
-  BarChart3,
-  Sparkles,
-  ArrowRight,
-  LogIn
-} from 'lucide-react';
 
 export function Homepage() {
   const { user } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   if (showAuth) {
     return <AuthPage onBackToHome={() => setShowAuth(false)} />;
+  }
+
+  if (showAbout) {
+    return <AboutPage onBackToHome={() => setShowAbout(false)} />;
   }
 
   const features = [
@@ -113,7 +107,7 @@ export function Homepage() {
               Transform Your Day Into An Adventure
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-              FocusFlowN is the productivity app designed specifically for ADHD minds. 
+              FocusFlow is the productivity app designed specifically for ADHD minds. 
               Turn overwhelming tasks into manageable victories with gamified progress tracking, 
               focus timers, and achievement systems that celebrate every step forward.
             </p>
@@ -129,6 +123,7 @@ export function Homepage() {
               <Button 
                 variant="outline" 
                 size="lg"
+                onClick={() => setShowAbout(true)}
                 className="text-lg px-8 py-6"
               >
                 Learn More
