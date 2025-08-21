@@ -18,6 +18,11 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Gamification variants
+        success: "bg-gradient-success text-primary-foreground hover:shadow-success transition-all duration-300",
+        focus: "bg-focus text-focus-foreground hover:bg-focus/90 shadow-md",
+        energy: "bg-energy text-energy-foreground hover:bg-energy/90 shadow-md",
+        creative: "bg-creative text-creative-foreground hover:bg-creative/90 shadow-md",
       },
       size: {
         default: "h-10 px-4 py-2",

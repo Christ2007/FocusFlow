@@ -1,0 +1,214 @@
+import { useState } from 'react';
+import { Task, TaskCategory, TASK_CATEGORIES, TASK_ICONS } from '@/types/tasks';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Clock } from 'lucide-react';
+
+interface QuickTaskEntryProps {
+  onAddTask: (task: Omit<Task, 'id' | 'createdAt' | 'completed'>) => void;
+}
+
+export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [taskData, setTaskData] = useState({
+    name: '',
+    category: 'focus' as TaskCategory,
+    icon: '🎯',
+    startTime: '',
+    endTime: '',
+    priority: 'medium' as Task['priority']
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskData.name || !taskData.startTime || !taskData.endTime) return;
+
+    onAddTask(taskData);
+    
+    // Reset form
+    setTaskData({
+      name: '',
+      category: 'focus',
+      icon: '🎯',
+      startTime: '',
+      endTime: '',
+      priority: 'medium'
+    });
+    setIsExpanded(false);
+  };
+
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5);
+  };
+
+  const getEndTime = (startTime: string) => {
+    if (!startTime) return '';
+    const [hours, minutes] = startTime.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    date.setHours(date.getHours() + 1); // Default 1 hour duration
+    return date.toTimeString().slice(0, 5);
+  };
+
+  if (!isExpanded) {
+    return (
+      <Card className="p-4 border-dashed border-2 border-primary/30 hover:border-primary/50 transition-colors">
+        <Button
+          onClick={() => {
+            setIsExpanded(true);
+            setTaskData(prev => ({
+              ...prev,
+              startTime: getCurrentTime(),
+              endTime: getEndTime(getCurrentTime())
+            }));
+          }}
+          variant="ghost"
+          className="w-full h-12 text-muted-foreground hover:text-primary"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Add a new task...
+        </Button>
+      </Card>
+    );
+  }
+
+  const iconOptions = Object.entries(TASK_ICONS).filter(([key, icon]) => {
+    // Filter icons based on selected category
+    if (taskData.category === 'focus') {
+      return ['study', 'work', 'reading', 'coding', 'planning'].includes(key);
+    }
+    if (taskData.category === 'energy') {
+      return ['exercise', 'running', 'sports', 'walking', 'yoga'].includes(key);
+    }
+    if (taskData.category === 'creative') {
+      return ['art', 'music', 'writing', 'design', 'cooking'].includes(key);
+    }
+    if (taskData.category === 'rest') {
+      return ['meditation', 'sleep', 'relaxing', 'socializing', 'entertainment'].includes(key);
+    }
+    return false;
+  });
+
+  return (
+    <Card className="p-4 animate-slide-up">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Task Name */}
+        <Input
+          placeholder="What do you want to accomplish?"
+          value={taskData.name}
+          onChange={(e) => setTaskData(prev => ({ ...prev, name: e.target.value }))}
+          className="text-base"
+          autoFocus
+        />
+
+        {/* Category and Icon Selection */}
+        <div className="grid grid-cols-2 gap-3">
+          <Select 
+            value={taskData.category} 
+            onValueChange={(value: TaskCategory) => {
+              const category = TASK_CATEGORIES[value];
+              setTaskData(prev => ({ 
+                ...prev, 
+                category: value,
+                icon: category.defaultIcon 
+              }));
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(TASK_CATEGORIES).map(([key, category]) => (
+                <SelectItem key={key} value={key}>
+                  <div className="flex items-center gap-2">
+                    <span>{category.defaultIcon}</span>
+                    <span>{category.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={taskData.icon} 
+            onValueChange={(value) => setTaskData(prev => ({ ...prev, icon: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Icon" />
+            </SelectTrigger>
+            <SelectContent>
+              {iconOptions.map(([key, icon]) => (
+                <SelectItem key={key} value={icon}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{icon}</span>
+                    <span className="capitalize">{key}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Time Range */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">Start Time</label>
+            <Input
+              type="time"
+              value={taskData.startTime}
+              onChange={(e) => {
+                const startTime = e.target.value;
+                setTaskData(prev => ({ 
+                  ...prev, 
+                  startTime,
+                  endTime: prev.endTime || getEndTime(startTime)
+                }));
+              }}
+            />
+          </div>
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">End Time</label>
+            <Input
+              type="time"
+              value={taskData.endTime}
+              onChange={(e) => setTaskData(prev => ({ ...prev, endTime: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        {/* Priority */}
+        <Select 
+          value={taskData.priority} 
+          onValueChange={(value: Task['priority']) => setTaskData(prev => ({ ...prev, priority: value }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="low">Low Priority</SelectItem>
+            <SelectItem value="medium">Medium Priority</SelectItem>
+            <SelectItem value="high">High Priority</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <Button type="submit" className="flex-1" disabled={!taskData.name || !taskData.startTime || !taskData.endTime}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={() => setIsExpanded(false)}
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
