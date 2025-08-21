@@ -224,7 +224,7 @@ export function SupportPage({ onBackToHome }: SupportPageProps) {
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium text-sm">How do I reset my password?</h4>
-                  <p className="text-sm text-muted-foreground">Use the "Forgot Password" link on the login page.</p>
+                  <p className="text-sm text-muted-foreground">Contact Us and we will help you reset your password.</p>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm">Can I sync across devices?</h4>

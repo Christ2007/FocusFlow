@@ -24,6 +24,7 @@ const STORAGE_KEYS = {
 
 export function useTaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasksAreToday, setTasksAreToday] = useState(false);
   const [progress, setProgress] = useState<UserProgress>({
     streakDays: 0,
     totalPoints: 0,
@@ -51,6 +52,8 @@ export function useTaskManager() {
             createdAt: new Date(task.createdAt),
             completedAt: task.completedAt ? new Date(task.completedAt) : undefined
           })));
+          // These tasks are already scoped to today by the server
+          setTasksAreToday(true);
           
           console.log('Setting progress from user profile:', userProfile.user.progress);
           setProgress({
@@ -85,6 +88,8 @@ export function useTaskManager() {
           createdAt: new Date(task.createdAt),
           completedAt: task.completedAt ? new Date(task.completedAt) : undefined
         })));
+        // Local storage may contain tasks from multiple days
+        setTasksAreToday(false);
       }
       
       if (savedProgress) {
@@ -113,10 +118,17 @@ export function useTaskManager() {
 
   // Calculate today's progress
   useEffect(() => {
-    const today = new Date().toDateString();
-    const todayTasks = tasks.filter(task => 
-      new Date(task.createdAt).toDateString() === today
-    );
+    const isToday = (d: Date) => {
+      const now = new Date();
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      );
+    };
+    const todayTasks = tasksAreToday
+      ? tasks
+      : tasks.filter(task => isToday(new Date(task.createdAt)));
     
     const completed = todayTasks.filter(task => task.completed).length;
     const total = todayTasks.length;
@@ -126,7 +138,7 @@ export function useTaskManager() {
       ...prev,
       todayProgress: { completed, total, points }
     }));
-  }, [tasks]);
+  }, [tasks, tasksAreToday]);
 
   const addTask = async (taskData: Omit<Task, 'id' | 'createdAt' | 'completed'>) => {
     console.log('addTask called with:', taskData);
@@ -369,10 +381,16 @@ export function useTaskManager() {
   };
 
   const getTodayTasks = () => {
-    const today = new Date().toDateString();
-    return tasks
-      .filter(task => new Date(task.createdAt).toDateString() === today)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    const isToday = (d: Date) => {
+      const now = new Date();
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      );
+    };
+    const list = tasksAreToday ? tasks : tasks.filter(task => isToday(new Date(task.createdAt)));
+    return list.sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
 
   return {
