@@ -45,6 +45,44 @@ export function initDatabase() {
 
     INSERT OR IGNORE INTO progress (id, streak_days, total_points, last_active_date, badges)
     VALUES (1, 0, 0, NULL, '[]');
+
+    CREATE TABLE IF NOT EXISTS focus_sessions (
+      id TEXT PRIMARY KEY,
+      task_id TEXT,
+      duration_minutes INTEGER NOT NULL,
+      started_at TEXT NOT NULL,
+      completed_at TEXT NOT NULL
+    );
+  `);
+
+  // Safe, non-destructive column migrations for existing databases
+  const taskColumns = db.pragma('table_info(tasks)').map(c => c.name);
+  if (!taskColumns.includes('estimated_duration')) {
+    db.exec('ALTER TABLE tasks ADD COLUMN estimated_duration INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!taskColumns.includes('actual_duration')) {
+    db.exec('ALTER TABLE tasks ADD COLUMN actual_duration INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!taskColumns.includes('recurrence_type')) {
+    db.exec("ALTER TABLE tasks ADD COLUMN recurrence_type TEXT NOT NULL DEFAULT 'none'");
+  }
+  if (!taskColumns.includes('recurrence_rule')) {
+    db.exec("ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!taskColumns.includes('due_date')) {
+    db.exec('ALTER TABLE tasks ADD COLUMN due_date TEXT');
+  }
+  if (!taskColumns.includes('parent_task_id')) {
+    db.exec('ALTER TABLE tasks ADD COLUMN parent_task_id TEXT');
+  }
+
+  // Create useful indexes
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_tasks_completed_at ON tasks(completed_at);
+    CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
+    CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+    CREATE INDEX IF NOT EXISTS idx_focus_sessions_started_at ON focus_sessions(started_at);
+    CREATE INDEX IF NOT EXISTS idx_focus_sessions_task_id ON focus_sessions(task_id);
   `);
 
   console.log('📦 Database initialized at:', DB_PATH);

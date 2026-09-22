@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 // Import task routes and store
 import taskRoutes from './routes/tasks.js';
 import { initDatabase, DB_PATH } from './database.js';
-import { getAllTasks, getProgress, migrateData } from './taskStore.js';
+import { getAllTasks, getProgress, migrateData, getAnalyticsData, recordFocusSession } from './taskStore.js';
 
 // Load environment variables
 dotenv.config();
@@ -119,6 +119,47 @@ app.post('/api/migrate', (req, res) => {
 
 // API routes
 app.use('/api/tasks', taskRoutes);
+
+// Analytics endpoint
+app.get('/api/analytics', (req, res) => {
+  try {
+    const { period, date } = req.query;
+    const data = getAnalyticsData({ period, date });
+    res.json({
+      success: true,
+      ...data
+    });
+  } catch (error) {
+    console.error('Get analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error getting analytics'
+    });
+  }
+});
+
+// Focus sessions endpoint
+app.post('/api/focus-sessions', (req, res) => {
+  try {
+    const { taskId, durationMinutes, startedAt, completedAt } = req.body;
+    const session = recordFocusSession({
+      taskId,
+      durationMinutes,
+      startedAt,
+      completedAt
+    });
+    res.status(201).json({
+      success: true,
+      session
+    });
+  } catch (error) {
+    console.error('Record focus session error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error recording focus session'
+    });
+  }
+});
 
 // Serve frontend static build if present
 const distPath = path.resolve(__dirname, '../dist');

@@ -8,7 +8,8 @@ import {
   updateTask,
   completeTask,
   uncompleteTask,
-  deleteTask
+  deleteTask,
+  recordFocusSession
 } from '../taskStore.js';
 
 const router = express.Router();
@@ -149,6 +150,10 @@ router.post('/', [
     .optional()
     .isIn(['low', 'medium', 'high'])
     .withMessage('Priority must be one of: low, medium, high'),
+  body('recurrenceType')
+    .optional()
+    .isIn(['none', 'daily', 'weekly', 'monthly'])
+    .withMessage('Recurrence type must be one of: none, daily, weekly, monthly'),
   body('startTime')
     .optional()
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
@@ -200,7 +205,11 @@ router.put('/:id', [
   body('priority')
     .optional()
     .isIn(['low', 'medium', 'high'])
-    .withMessage('Priority must be one of: low, medium, high')
+    .withMessage('Priority must be one of: low, medium, high'),
+  body('recurrenceType')
+    .optional()
+    .isIn(['none', 'daily', 'weekly', 'monthly'])
+    .withMessage('Recurrence type must be one of: none, daily, weekly, monthly')
 ], (req, res) => {
   try {
     const errors = validationResult(req);
@@ -249,6 +258,7 @@ const handleCompleteTask = (req, res) => {
       success: true,
       message: 'Task completed successfully',
       task: result.task,
+      nextTask: result.nextTask || null,
       pointsEarned: result.pointsEarned,
       progress: result.progress,
       newBadges: result.newBadges
@@ -261,6 +271,32 @@ const handleCompleteTask = (req, res) => {
     });
   }
 };
+
+// @route   POST /api/tasks/:id/focus-session
+// @desc    Log a focus session attributed to a task
+// @access  Public
+router.post('/:id/focus-session', (req, res) => {
+  try {
+    const { durationMinutes, startedAt, completedAt } = req.body;
+    const session = recordFocusSession({
+      taskId: req.params.id,
+      durationMinutes,
+      startedAt,
+      completedAt
+    });
+
+    res.status(201).json({
+      success: true,
+      session
+    });
+  } catch (error) {
+    console.error('Record task focus session error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error recording task focus session'
+    });
+  }
+});
 
 // @route   PUT/POST /api/tasks/:id/complete
 // @desc    Mark task as complete

@@ -1,5 +1,12 @@
 export type TaskCategory = 'focus' | 'energy' | 'creative' | 'rest';
 
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly';
+
+export interface RecurrenceRule {
+  daysOfWeek?: number[]; // 0 = Sunday, 1 = Monday, ...
+  dayOfMonth?: number;
+}
+
 export interface Task {
   id: string;
   name: string;
@@ -9,6 +16,15 @@ export interface Task {
   endTime: string;   // HH:MM format
   completed: boolean;
   priority: 'low' | 'medium' | 'high';
+  points?: number;
+  notes?: string;
+  tags?: string[];
+  estimatedDuration?: number; // in minutes
+  actualDuration?: number;    // in minutes
+  recurrenceType?: RecurrenceType;
+  recurrenceRule?: RecurrenceRule;
+  dueDate?: string;           // YYYY-MM-DD
+  parentTaskId?: string;
   subtasks?: Subtask[];
   createdAt: Date;
   completedAt?: Date;
