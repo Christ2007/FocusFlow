@@ -46,24 +46,28 @@ export function TaskCard({
   return (
     <>
       <div className={cn(
-        "group flex items-start gap-3.5 px-4 py-3 sm:py-3.5 border border-border/70 border-l-[3px] rounded-lg bg-card/50 transition-all duration-150",
+                "group flex items-start gap-3 px-3 py-3 sm:gap-3.5 sm:px-4 sm:py-3.5 border border-border/70 border-l-[3px] rounded-lg bg-card/50 transition-all duration-150",
         "hover:bg-card hover:border-border hover:shadow-card",
         priorityBorders[task.priority],
         task.completed && "opacity-55 bg-muted/20 hover:bg-muted/30"
       )}>
-        {/* Checkbox */}
+        {/* Checkbox — 20px visual with a 36px touch target */}
         <button
           type="button"
           onClick={task.completed ? onUncomplete : onComplete}
           aria-label={task.completed ? "Mark task as incomplete" : "Mark task as complete"}
-          className={cn(
-            "flex-shrink-0 mt-0.5 h-5 w-5 rounded-full border transition-all duration-150 flex items-center justify-center cursor-pointer",
-            task.completed
-              ? "bg-primary border-primary text-primary-foreground shadow-xs"
-              : "border-muted-foreground/50 hover:border-primary hover:bg-primary/5"
-          )}
+          className="flex-shrink-0 -ml-1.5 -mt-1 h-9 w-9 rounded-full flex items-center justify-center cursor-pointer"
         >
-          {task.completed && <Check className="h-3 w-3 stroke-[2.5]" />}
+          <span
+            className={cn(
+              "h-5 w-5 rounded-full border transition-all duration-150 flex items-center justify-center",
+              task.completed
+                ? "bg-primary border-primary text-primary-foreground shadow-xs"
+                : "border-muted-foreground/50 group-hover:border-primary hover:bg-primary/5"
+            )}
+          >
+            {task.completed && <Check className="h-3 w-3 stroke-[2.5]" />}
+          </span>
         </button>
         
         {/* Content */}
@@ -72,7 +76,7 @@ export function TaskCard({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <div className={cn(
-                  "text-[15px] sm:text-base font-medium text-foreground leading-snug tracking-[-0.01em]",
+                  "text-[15px] sm:text-base font-medium text-foreground leading-snug tracking-[-0.01em] break-words",
                   task.completed && "line-through text-muted-foreground font-normal"
                 )}>
                   {task.icon && <span className="mr-2 text-sm select-none opacity-80">{task.icon}</span>}
@@ -145,7 +149,7 @@ export function TaskCard({
                   {task.tags.map(tag => (
                     <span
                       key={tag}
-                      className="text-[10px] text-muted-foreground/80 bg-muted/60 px-1.5 py-0.2 rounded border border-border/40"
+                      className="text-[10px] text-muted-foreground/80 bg-muted/60 px-1.5 py-0.2 rounded border border-border/40 break-all"
                     >
                       #{tag}
                     </span>
@@ -154,8 +158,8 @@ export function TaskCard({
               )}
             </div>
 
-            {/* Action buttons — visible on hover / tap */}
-            <div className="flex items-center gap-0.5 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            {/* Action buttons — always visible on touch, hover-reveal on desktop */}
+            <div className="flex items-center gap-1 sm:gap-0.5 flex-shrink-0 -mr-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity duration-150">
               {/* Focus button */}
               {onSelectForFocus && !task.completed && (
                 <Button
@@ -164,9 +168,9 @@ export function TaskCard({
                   onClick={() => onSelectForFocus(task)}
                   aria-label="Focus on this task"
                   title="Focus on this task"
-                  className="p-1.5 h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  className="p-1.5 h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
                 >
-                  <Timer className="h-3.5 w-3.5" />
+                  <Timer className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                 </Button>
               )}
 
@@ -178,9 +182,9 @@ export function TaskCard({
                   onClick={() => setEditOpen(true)}
                   aria-label="Edit task"
                   title="Edit task"
-                  className="p-1.5 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  className="p-1.5 h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                 </Button>
               )}
 
@@ -191,9 +195,9 @@ export function TaskCard({
                 onClick={onDelete}
                 aria-label="Delete task"
                 title="Delete task"
-                className="p-1.5 h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                className="p-1.5 h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               </Button>
             </div>
           </div>
@@ -202,14 +206,15 @@ export function TaskCard({
           {task.subtasks && task.subtasks.length > 0 && (
             <div className="space-y-1 mt-2">
               {task.subtasks.map((subtask) => (
-                <div key={subtask.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div key={subtask.id} className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
                   <div className={cn(
-                    "w-3 h-3 rounded-sm border flex items-center justify-center",
+                    "w-3 h-3 rounded-sm border flex items-center justify-center flex-shrink-0",
                     subtask.completed && "bg-primary border-primary"
                   )}>
                     {subtask.completed && <div className="w-1.5 h-1.5 bg-primary-foreground rounded-sm" />}
                   </div>
                   <span className={cn(
+                    "min-w-0 break-words",
                     subtask.completed && "line-through"
                   )}>
                     {subtask.name}

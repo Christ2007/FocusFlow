@@ -132,7 +132,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
             endTime: getEndTime(currentTime)
           }));
         }}
-        className="w-full h-12 sm:h-13 px-4 rounded-xl border border-border/80 bg-card/50 hover:bg-card hover:border-primary/50 shadow-card hover:shadow-task flex items-center justify-between transition-all duration-150 group text-left cursor-pointer"
+        className="w-full h-12 sm:h-14 px-4 rounded-xl border border-border/80 bg-card/50 hover:bg-card hover:border-primary/50 shadow-card hover:shadow-task flex items-center justify-between transition-all duration-150 group text-left cursor-pointer"
       >
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors duration-150">
@@ -229,7 +229,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
 
         {/* Time Range & Priority */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
+          <div className="min-w-0">
             <label className="text-xs text-muted-foreground mb-1 block">Start</label>
             <Input
               type="time"
@@ -244,7 +244,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
               }}
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="text-xs text-muted-foreground mb-1 block">End</label>
             <Input
               type="time"
@@ -254,7 +254,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
               }}
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="text-xs text-muted-foreground mb-1 block">Priority</label>
             <Select 
               value={taskData.priority} 
@@ -293,7 +293,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
             </Select>
 
             {taskData.recurrenceType === 'weekly' && (
-              <div className="flex items-center gap-1 pt-1">
+              <div className="flex items-center gap-1 pt-1 flex-wrap">
                 <span className="text-[11px] text-muted-foreground mr-1">On:</span>
                 {WEEKDAYS.map(w => (
                   <button
@@ -301,7 +301,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
                     type="button"
                     onClick={() => toggleDay(w.value)}
                     className={cn(
-                      "w-6 h-6 rounded text-[11px] font-semibold flex items-center justify-center transition-colors",
+                      "w-8 h-8 rounded text-[11px] font-semibold flex items-center justify-center transition-colors",
                       selectedDays.includes(w.value)
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -331,7 +331,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
                     setCustomEst('');
                   }}
                   className={cn(
-                    "px-2.5 py-1 rounded border text-xs font-medium transition-colors",
+                    "px-3 py-1.5 rounded border text-xs font-medium transition-colors",
                     taskData.estimatedDuration === mins && !customEst
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-background border-border/80 text-muted-foreground hover:text-foreground"
@@ -349,7 +349,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
                   setCustomEst(e.target.value);
                   setTaskData(prev => ({ ...prev, estimatedDuration: 0 }));
                 }}
-                className="h-7 text-xs w-18 px-2"
+                className="h-7 text-xs w-20 px-2"
               />
             </div>
           </div>

@@ -115,25 +115,25 @@ export function Dashboard() {
     <div className="min-h-screen bg-background transition-colors duration-200">
       {/* Header */}
       <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-15 sm:h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-6 min-w-0">
             <div
-              className="flex items-center gap-2.5 cursor-pointer select-none"
+              className="flex items-center gap-2.5 cursor-pointer select-none flex-shrink-0"
               onClick={() => navigateTo('dashboard')}
             >
               <span className="w-2 h-2 rounded-full bg-primary" />
-              <h1 className="text-base sm:text-lg font-semibold tracking-tight text-foreground">
+              <h1 className="hidden sm:block text-base sm:text-lg font-semibold tracking-tight text-foreground whitespace-nowrap">
                 FocusFlow
               </h1>
             </div>
 
             {/* Navigation tabs */}
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-0.5 sm:gap-1">
               <button
                 type="button"
                 onClick={() => navigateTo('dashboard')}
                 className={cn(
-                  "px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5",
+                  "px-2 sm:px-3 py-2 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5 flex-shrink-0",
                   currentView === 'dashboard'
                     ? "bg-accent text-foreground font-semibold"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -146,7 +146,7 @@ export function Dashboard() {
                 type="button"
                 onClick={() => navigateTo('analytics')}
                 className={cn(
-                  "px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5",
+                  "px-2 sm:px-3 py-2 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5 flex-shrink-0",
                   currentView === 'analytics'
                     ? "bg-accent text-foreground font-semibold"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -158,8 +158,8 @@ export function Dashboard() {
             </nav>
           </div>
           
-          <div className="flex items-center gap-3">
-            <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <span className="hidden md:inline text-xs sm:text-sm font-medium text-muted-foreground">
               {new Date().toLocaleDateString('en-US', { 
                 weekday: 'short',
                 month: 'short', 
@@ -171,7 +171,7 @@ export function Dashboard() {
               size="icon"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
             >
               {theme === 'dark' ? (
                 <Sun className="h-4 w-4" />
@@ -200,7 +200,7 @@ export function Dashboard() {
           currentView === 'analytics' && "hidden"
         )}>
             {/* Main Content — Tasks core focus */}
-            <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+            <div className="lg:col-span-7 xl:col-span-8 space-y-6 min-w-0">
               {/* Quick Add Task */}
               <section>
                 <QuickTaskEntry onAddTask={addTask} />
@@ -352,9 +352,9 @@ export function Dashboard() {
             </div>
 
             {/* Sidebar — Editorial Layout with Focus Session as Priority */}
-            <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+            <div className="min-w-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6 lg:col-span-5 xl:col-span-4">
               {/* Focus Session — Visual Anchor */}
-              <div className="rounded-xl border border-border/70 bg-card/40 p-5 sm:p-6 shadow-card">
+              <div className="md:col-span-2 lg:col-span-1 rounded-xl border border-border/70 bg-card/40 p-4 sm:p-6 shadow-card">
                 <FocusTimer
                   tasks={tasks}
                   selectedTaskId={selectedFocusTaskId}

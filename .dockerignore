@@ -9,7 +9,14 @@ dist
 Dockerfile*
 docker-compose*.yml
 *.md
-.env*
+# Local secrets must never enter the image (root .env AND nested ones,
+# e.g. server/.env)
+**/.env*
+
+# Local SQLite databases
+**/*.db
+**/*.sqlite
+**/*.sqlite3
 .vscode
 .idea
 *.log

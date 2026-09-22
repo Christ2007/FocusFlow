@@ -172,7 +172,7 @@ export function AnalyticsPage() {
                 type="button"
                 onClick={() => setPeriod(p)}
                 className={cn(
-                  "px-3 py-1 text-xs font-medium rounded-md capitalize transition-colors",
+                  "px-3 py-1.5 text-xs font-medium rounded-md capitalize transition-colors",
                   period === p
                     ? "bg-background text-foreground shadow-xs font-semibold"
                     : "text-muted-foreground hover:text-foreground"
@@ -189,7 +189,7 @@ export function AnalyticsPage() {
               variant="outline"
               size="icon"
               onClick={() => handleShiftPeriod('prev')}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
               aria-label="Previous period"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -197,7 +197,7 @@ export function AnalyticsPage() {
             <button
               type="button"
               onClick={handleResetToToday}
-              className="px-2.5 h-8 text-xs font-medium border border-border/80 rounded-md bg-background text-foreground hover:bg-muted/40 transition-colors tabular-nums min-w-[140px] text-center"
+              className="px-2.5 h-9 text-xs font-medium border border-border/80 rounded-md bg-background text-foreground hover:bg-muted/40 transition-colors tabular-nums min-w-[140px] text-center"
               title="Click to reset to today"
             >
               {getDateRangeLabel()}
@@ -206,7 +206,7 @@ export function AnalyticsPage() {
               variant="outline"
               size="icon"
               onClick={() => handleShiftPeriod('next')}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
               aria-label="Next period"
             >
               <ChevronRight className="h-4 w-4" />
@@ -223,7 +223,7 @@ export function AnalyticsPage() {
       )}
 
       {/* Primary KPI Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         {/* Completed */}
         <div className="rounded-xl border border-border/70 bg-card p-3.5 sm:p-4 shadow-card">
           <div className="flex items-center justify-between text-muted-foreground">
@@ -352,9 +352,9 @@ function DailyAnalyticsView({ data }: { data: DailyAnalyticsResponse | null }) {
   const hasTimeData = timeData.some(t => t.estimatedMinutes > 0 || t.actualMinutes > 0);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 [&>*]:min-w-0">
       {/* Completed Tasks by Category */}
-      <div className="rounded-xl border border-border/70 bg-card p-5 shadow-card space-y-4">
+      <div className="rounded-xl border border-border/70 bg-card p-4 sm:p-5 shadow-card space-y-4">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
             Tasks Completed by Category
@@ -398,7 +398,7 @@ function DailyAnalyticsView({ data }: { data: DailyAnalyticsResponse | null }) {
       </div>
 
       {/* Estimated vs Actual Time Comparison */}
-      <div className="rounded-xl border border-border/70 bg-card p-5 shadow-card space-y-4">
+      <div className="rounded-xl border border-border/70 bg-card p-4 sm:p-5 shadow-card space-y-4">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
             Estimated vs. Actual Duration
@@ -480,9 +480,9 @@ function WeeklyAnalyticsView({ data }: { data: WeeklyAnalyticsResponse | null })
   const hasTimeData = days.some(d => d.estimatedMinutes > 0 || d.actualMinutes > 0);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 [&>*]:min-w-0">
       {/* Weekly Activity (Mon - Sun) */}
-      <div className="rounded-xl border border-border/70 bg-card p-5 shadow-card space-y-4">
+      <div className="rounded-xl border border-border/70 bg-card p-4 sm:p-5 shadow-card space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-foreground">
@@ -527,7 +527,7 @@ function WeeklyAnalyticsView({ data }: { data: WeeklyAnalyticsResponse | null })
       </div>
 
       {/* Weekly Estimated vs Actual Time Comparison */}
-      <div className="rounded-xl border border-border/70 bg-card p-5 shadow-card space-y-4">
+      <div className="rounded-xl border border-border/70 bg-card p-4 sm:p-5 shadow-card space-y-4">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
             Estimated vs. Actual Duration by Day
@@ -607,7 +607,7 @@ function MonthlyAnalyticsView({ data }: { data: MonthlyAnalyticsResponse | null 
   return (
     <div className="space-y-6">
       {/* Monthly Productivity Trend Line Chart */}
-      <div className="rounded-xl border border-border/70 bg-card p-5 shadow-card space-y-4">
+      <div className="rounded-xl border border-border/70 bg-card p-4 sm:p-5 shadow-card space-y-4">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
             Monthly Productivity Trend
@@ -652,7 +652,7 @@ function MonthlyAnalyticsView({ data }: { data: MonthlyAnalyticsResponse | null 
       </div>
 
       {/* Monthly Estimated vs Actual Time */}
-      <div className="rounded-xl border border-border/70 bg-card p-5 shadow-card space-y-4">
+      <div className="rounded-xl border border-border/70 bg-card p-4 sm:p-5 shadow-card space-y-4">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
             Monthly Estimated vs. Actual Time

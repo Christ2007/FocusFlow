@@ -215,6 +215,16 @@ function formatDate(d) {
   return `${year}-${month}-${day}`;
 }
 
+// Convert a stored ISO timestamp to a local YYYY-MM-DD date string.
+// All day-boundary logic (streaks, today lists, analytics) must use local
+// dates so they match the dates the client displays.
+function toLocalDateStr(value) {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return formatDate(d);
+}
+
 export function completeTask(id) {
   const db = getDb();
 

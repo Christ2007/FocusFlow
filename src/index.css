@@ -136,9 +136,43 @@
     @apply border-border;
   }
 
+  html,
+  body {
+    /* Safety net: layouts should never overflow, but if a stray fixed-width
+       element sneaks in, clip horizontally instead of breaking the page. */
+    overflow-x: clip;
+  }
+
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* iOS/WebKit renders native time & date controls with a fixed intrinsic
+     width that ignores width:100% and overflows grid/flex cells (the Start/End
+     fields escaping the card on phones and overlapping Priority on tablets).
+     Resetting the native appearance removes the enforced intrinsic sizing
+     while keeping the tap-to-open picker; min/max-width then constrain the
+     field to its parent. */
+  input[type="time"],
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* iOS Safari auto-zooms the page when a focused field is under 16px,
+     which makes the layout appear to overflow horizontally. Render form
+     text at 16px on small screens to prevent the zoom. */
+  @media (max-width: 640px) {
+    input,
+    textarea {
+      font-size: 16px;
+    }
   }
 }

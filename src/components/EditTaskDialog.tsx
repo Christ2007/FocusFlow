@@ -127,7 +127,7 @@ function EditTaskForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[85dvh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">Edit Task</DialogTitle>
         </DialogHeader>
@@ -192,8 +192,8 @@ function EditTaskForm({
           </div>
 
           {/* Times & Priority */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="space-y-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="space-y-1 min-w-0">
               <label className="font-medium text-foreground">Start</label>
               <Input
                 type="time"
@@ -202,7 +202,7 @@ function EditTaskForm({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <label className="font-medium text-foreground">End</label>
               <Input
                 type="time"
@@ -211,7 +211,7 @@ function EditTaskForm({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0 col-span-2 sm:col-span-1">
               <label className="font-medium text-foreground">Priority</label>
               <Select value={priority} onValueChange={(v: Task['priority']) => setPriority(v)}>
                 <SelectTrigger className="h-8 text-xs">
@@ -247,7 +247,7 @@ function EditTaskForm({
             </div>
 
             {recurrenceType === 'weekly' && (
-              <div className="flex items-center justify-between gap-1 pt-1">
+              <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
                 <span className="text-[11px] text-muted-foreground">Repeat on:</span>
                 <div className="flex gap-1">
                   {WEEKDAYS.map(w => (
@@ -256,7 +256,7 @@ function EditTaskForm({
                       type="button"
                       onClick={() => toggleDay(w.value)}
                       className={cn(
-                        "w-6 h-6 rounded text-[11px] font-semibold flex items-center justify-center transition-colors",
+                        "w-8 h-8 rounded text-[11px] font-semibold flex items-center justify-center transition-colors",
                         selectedDays.includes(w.value)
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -284,7 +284,7 @@ function EditTaskForm({
                     setCustomEst('');
                   }}
                   className={cn(
-                    "h-7 rounded border text-[11px] font-medium transition-colors",
+                    "h-8 rounded border text-[11px] font-medium transition-colors",
                     estimatedDuration === mins && !customEst
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-background border-border/80 text-muted-foreground hover:text-foreground"
@@ -294,7 +294,7 @@ function EditTaskForm({
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <span className="text-[11px] text-muted-foreground">Custom min:</span>
               <Input
                 type="number"

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Eye } from 'lucide-react';
+import { useWakeLock } from '@/hooks/useWakeLock';
 import {
   Select,
   SelectContent,
@@ -34,6 +35,11 @@ export function FocusTimer({
   const [timeLeft, setTimeLeft] = useState(FOCUS_DURATION_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
+
+  // Screen Wake Lock: keep the display on while the timer runs. The timer's
+  // `isRunning` state is the single source of truth; the hook no-ops on
+  // unsupported browsers and never touches timer state.
+  const { isHeld: wakeLockHeld } = useWakeLock(isRunning);
   const [localSelectedTask, setLocalSelectedTask] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -266,11 +272,20 @@ export function FocusTimer({
             <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
               {mode === 'focus' ? 'Focus Session' : 'Short Break'}
             </h3>
+            {wakeLockHeld && (
+              <span
+                title="Screen kept awake while the timer runs"
+                aria-label="Screen kept awake while the timer runs"
+                className="text-muted-foreground/60 select-none"
+              >
+                <Eye className="h-3 w-3" />
+              </span>
+            )}
           </div>
           <button
             type="button"
             onClick={switchMode}
-            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 py-1 px-2.5 rounded-md hover:bg-accent/60"
+            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 py-1.5 px-3 rounded-md hover:bg-accent/60"
           >
             Switch to {mode === 'focus' ? 'break' : 'focus'}
           </button>

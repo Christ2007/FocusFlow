@@ -106,7 +106,7 @@ export function TaskSearchFilter({
 
       {/* Expandable Filter Controls */}
       {showFilters && (
-        <div className="p-3 rounded-lg border border-border/80 bg-card/40 grid grid-cols-2 sm:grid-cols-4 gap-2.5 animate-in fade-in-50 duration-150">
+        <div className="p-3 rounded-lg border border-border/80 bg-card/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 animate-in fade-in-50 duration-150">
           {/* Status */}
           <div className="space-y-1">
             <label className="text-[11px] font-medium text-muted-foreground">Status</label>
@@ -116,7 +116,7 @@ export function TaskSearchFilter({
                 onFilterChange({ ...filters, status: val })
               }
             >
-              <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectTrigger className="h-9 text-xs bg-background">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -136,7 +136,7 @@ export function TaskSearchFilter({
                 onFilterChange({ ...filters, priority: val })
               }
             >
-              <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectTrigger className="h-9 text-xs bg-background">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -157,7 +157,7 @@ export function TaskSearchFilter({
                 onFilterChange({ ...filters, category: val })
               }
             >
-              <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectTrigger className="h-9 text-xs bg-background">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -183,7 +183,7 @@ export function TaskSearchFilter({
                 onFilterChange({ ...filters, recurrence: val })
               }
             >
-              <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectTrigger className="h-9 text-xs bg-background">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
