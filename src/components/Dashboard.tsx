@@ -4,115 +4,123 @@ import { QuickTaskEntry } from './QuickTaskEntry';
 import { FocusTimer } from './FocusTimer';
 import { BadgeShowcase } from './BadgeShowcase';
 import { useTaskManager } from '@/hooks/useTaskManager';
-import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Brain, Zap, LogOut } from 'lucide-react';
+import { Sun, Moon, AlertCircle } from 'lucide-react';
 
 export function Dashboard() {
-  console.log('Dashboard component is rendering');
-  
+  const { theme, toggleTheme } = useTheme();
   const { 
     progress, 
+    isLoading,
+    error,
     addTask, 
     completeTask, 
     uncompleteTask, 
     deleteTask, 
     getTodayTasks 
   } = useTaskManager();
-  
-  const { logout, user } = useAuth();
-  
-
-  console.log('useTaskManager data:', { progress, tasksLength: getTodayTasks().length });
-  console.log('addTask function:', addTask);
 
   const todayTasks = getTodayTasks();
   const upcomingTasks = todayTasks.filter(task => !task.completed);
   const completedTasks = todayTasks.filter(task => task.completed);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-colors duration-200">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                Dashboard
-              </h1>
-            </div>
-            
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="text-xs sm:text-sm text-muted-foreground sm:hidden">
-                {new Date().toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric' 
-                })}
-              </div>
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <CalendarDays className="h-4 w-4 mr-2" />
-                Today: {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'short', 
-                  day: 'numeric' 
-                })}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={logout}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
-            </div>
+      <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-15 sm:h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-primary" />
+            <h1 className="text-base sm:text-lg font-semibold tracking-tight text-foreground">
+              FocusFlow
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+              {new Date().toLocaleDateString('en-US', { 
+                weekday: 'short',
+                month: 'short', 
+                day: 'numeric' 
+              })}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
-          {/* Main Content - Full width on mobile, 2/3 on desktop */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Progress Overview */}
-            <ProgressBar progress={progress} />
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {error && (
+          <div className="mb-6 p-3.5 rounded-xl border border-destructive/40 bg-destructive/10 text-destructive text-xs flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{error} - using local state until connection is restored.</span>
+          </div>
+        )}
 
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-10">
+          {/* Main Content — Tasks core focus (visually dominant) */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-6">
             {/* Quick Add Task */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-energy" />
-                <h2 className="text-xl font-semibold">Quick Add</h2>
-              </div>
+            <section>
               <QuickTaskEntry onAddTask={addTask} />
-            </div>
+            </section>
 
             {/* Today's Tasks */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-focus" />
-                  <h2 className="text-xl font-semibold">Today's Tasks</h2>
-                  <span className="text-sm text-muted-foreground">
-                    ({upcomingTasks.length} remaining)
+            <section className="space-y-3.5">
+              <div className="flex items-center justify-between pb-1">
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                    Today's Tasks
+                  </h2>
+                  <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full tabular-nums">
+                    {upcomingTasks.length}
                   </span>
                 </div>
+                {completedTasks.length > 0 && (
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {completedTasks.length} completed
+                  </span>
+                )}
               </div>
 
-              {todayTasks.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <div className="text-6xl mb-4">🎯</div>
-                  <h3 className="text-lg font-medium mb-2">Ready to start your day?</h3>
-                  <p className="text-sm">Add your first task above to begin your productivity journey!</p>
+              {isLoading && todayTasks.length === 0 ? (
+                <div className="py-6 px-5 sm:px-6 rounded-xl border border-border/70 bg-card/30 flex items-center justify-center">
+                  <p className="text-xs text-muted-foreground animate-pulse">Loading tasks...</p>
+                </div>
+              ) : todayTasks.length === 0 ? (
+                <div className="py-6 px-5 sm:px-6 rounded-xl border border-border/70 bg-card/30 sm:flex sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground tracking-tight">
+                      No tasks scheduled for today
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Use the quick entry above to plan your priorities.
+                    </p>
+                  </div>
+                  <div className="mt-2.5 sm:mt-0 flex-shrink-0">
+                    <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md border border-border/40">
+                      Queue clear
+                    </span>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {/* Upcoming Tasks */}
                   {upcomingTasks.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                        Up Next ({upcomingTasks.length})
-                      </h3>
+                    <div className="space-y-2">
                       {upcomingTasks.map((task) => (
                         <TaskCard
                           key={task.id}
@@ -127,9 +135,9 @@ export function Dashboard() {
 
                   {/* Completed Tasks */}
                   {completedTasks.length > 0 && (
-                    <div className="space-y-3 pt-4">
-                      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                        Completed Today ({completedTasks.length}) 🎉
+                    <div className="space-y-2 pt-6 border-t border-border/60 mt-6">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1">
+                        Completed Today ({completedTasks.length})
                       </h3>
                       {completedTasks.map((task) => (
                         <TaskCard
@@ -144,40 +152,24 @@ export function Dashboard() {
                   )}
                 </div>
               )}
-            </div>
+            </section>
           </div>
 
-          {/* Sidebar - Full width on mobile, 1/3 on desktop */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Focus Timer */}
-            <FocusTimer />
-
-            {/* Badge Showcase */}
-            <BadgeShowcase badges={progress.badges} />
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="bg-gradient-focus p-4 rounded-lg text-focus-foreground">
-                <div className="text-2xl font-bold">{progress.totalPoints}</div>
-                <div className="text-sm opacity-90">Total Points</div>
-              </div>
-              
-              <div className="bg-gradient-energy p-4 rounded-lg text-energy-foreground">
-                <div className="text-2xl font-bold">{progress.streakDays}</div>
-                <div className="text-sm opacity-90">Day Streak</div>
-              </div>
+          {/* Sidebar — Editorial Layout with Focus Session as Priority */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+            {/* Focus Session — Visual Anchor */}
+            <div className="rounded-xl border border-border/70 bg-card/40 p-5 sm:p-6 shadow-card">
+              <FocusTimer />
             </div>
 
-            {/* Focus Tips - Hidden on small mobile, visible on larger screens */}
-            <div className="hidden sm:block bg-card p-4 rounded-lg border border-border shadow-card">
-              <h3 className="font-semibold mb-3 text-primary">💡 Focus Tips</h3>
-              <ul className="text-sm text-muted-foreground space-y-2">
-                <li>• Break large tasks into smaller steps</li>
-                <li>• Use the Pomodoro timer for focus sessions</li>
-                <li>• Celebrate every completed task!</li>
-                <li>• Take regular movement breaks</li>
-                <li>• Set realistic daily goals</li>
-              </ul>
+            {/* Daily Progress — Editorial Section */}
+            <div className="border-t border-border/60 pt-5">
+              <ProgressBar progress={progress} />
+            </div>
+
+            {/* Milestones — Editorial Section */}
+            <div className="border-t border-border/60 pt-5">
+              <BadgeShowcase badges={progress.badges} />
             </div>
           </div>
         </div>

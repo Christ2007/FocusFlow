@@ -1,28 +1,34 @@
-import { useAuth } from '@/contexts/AuthContext';
 import { buildApiUrl } from '@/lib/apiConfig';
 
 export const useApi = () => {
-  const { token } = useAuth();
-
-  const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+  const apiCall = async (endpoint: string, options: RequestInit = {}, timeoutMs = 5000) => {
     const url = buildApiUrl(endpoint);
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-      ...options,
-    };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    const response = await fetch(url, config);
-    const data = await response.json();
+    try {
+      const config: RequestInit = {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        signal: controller.signal,
+        ...options,
+      };
 
-    if (!response.ok) {
-      throw new Error(data.message || 'API request failed');
+      const response = await fetch(url, config);
+      clearTimeout(timer);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'API request failed');
+      }
+
+      return data;
+    } catch (err) {
+      clearTimeout(timer);
+      throw err;
     }
-
-    return data;
   };
 
   return { apiCall };

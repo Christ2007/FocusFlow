@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Task, UserProgress, Badge } from '@/types/tasks';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
 
 // Mobile-compatible UUID generator
@@ -9,114 +8,128 @@ const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  // Fallback for mobile browsers
+  // Fallback for older browsers
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
-    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
 };
 
-const STORAGE_KEYS = {
+const MIGRATION_KEY = 'focusflow_migrated';
+const OLD_STORAGE_KEYS = {
   TASKS: 'adhd_tasks',
   PROGRESS: 'adhd_progress'
 };
 
 export function useTaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [tasksAreToday, setTasksAreToday] = useState(false);
   const [progress, setProgress] = useState<UserProgress>({
     streakDays: 0,
     totalPoints: 0,
     badges: [],
     todayProgress: { completed: 0, total: 0, points: 0 }
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user, token } = useAuth();
   const { apiCall } = useApi();
 
-  // Load data from API or localStorage on mount
-  useEffect(() => {
-    const loadData = async () => {
-      if (user && token) {
-        try {
-          // Load from API
-          const [tasksResponse, userProfile] = await Promise.all([
-            apiCall('/tasks/today'),
-            apiCall('/auth/me')
-          ]);
-          
-          setTasks(tasksResponse.tasks.map((task: any) => ({
-            ...task,
-            id: task._id,
-            createdAt: new Date(task.createdAt),
-            completedAt: task.completedAt ? new Date(task.completedAt) : undefined
-          })));
-          // These tasks are already scoped to today by the server
-          setTasksAreToday(true);
-          
-          console.log('Setting progress from user profile:', userProfile.user.progress);
-          setProgress({
-            streakDays: userProfile.user.progress.streakDays || 0,
-            totalPoints: userProfile.user.progress.totalPoints || 0,
-            badges: userProfile.user.progress.badges?.map((badge: any) => ({
-              ...badge,
-              earnedAt: new Date(badge.earnedAt)
-            })) || [],
-            todayProgress: { completed: 0, total: 0, points: 0 }
-          });
-          console.log('Progress state updated with streak:', userProfile.user.progress.streakDays);
-        } catch (error) {
-          console.error('Failed to load data from API:', error);
-          // Fallback to localStorage
-          loadFromLocalStorage();
-        }
-      } else {
-        // Load from localStorage for offline mode
-        loadFromLocalStorage();
-      }
-    };
+  // Parse tasks from API response
+  const parseTasks = (apiTasks: any[]): Task[] => {
+    return apiTasks.map((task: any) => ({
+      ...task,
+      id: task.id || task._id,
+      createdAt: new Date(task.createdAt),
+      completedAt: task.completedAt ? new Date(task.completedAt) : undefined
+    }));
+  };
 
-    const loadFromLocalStorage = () => {
-      const savedTasks = localStorage.getItem(STORAGE_KEYS.TASKS);
-      const savedProgress = localStorage.getItem(STORAGE_KEYS.PROGRESS);
-      
+  // Parse progress from API response
+  const parseProgress = (apiProgress: any): Partial<UserProgress> => {
+    return {
+      streakDays: apiProgress.streakDays || 0,
+      totalPoints: apiProgress.totalPoints || 0,
+      badges: (apiProgress.badges || []).map((badge: any) => ({
+        ...badge,
+        earnedAt: new Date(badge.earnedAt)
+      }))
+    };
+  };
+
+  // One-time localStorage migration (conservative: only when server is empty)
+  const attemptMigration = async () => {
+    if (localStorage.getItem(MIGRATION_KEY) === 'true') return;
+
+    const savedTasks = localStorage.getItem(OLD_STORAGE_KEYS.TASKS);
+    const savedProgress = localStorage.getItem(OLD_STORAGE_KEYS.PROGRESS);
+
+    if (!savedTasks && !savedProgress) return;
+
+    try {
+      const migrationData: any = {};
+
       if (savedTasks) {
-        const parsedTasks = JSON.parse(savedTasks);
-        setTasks(parsedTasks.map((task: any) => ({
-          ...task,
-          createdAt: new Date(task.createdAt),
-          completedAt: task.completedAt ? new Date(task.completedAt) : undefined
-        })));
-        // Local storage may contain tasks from multiple days
-        setTasksAreToday(false);
+        migrationData.tasks = JSON.parse(savedTasks);
       }
-      
       if (savedProgress) {
-        const parsedProgress = JSON.parse(savedProgress);
-        setProgress({
-          ...parsedProgress,
-          badges: parsedProgress.badges.map((badge: any) => ({
-            ...badge,
-            earnedAt: new Date(badge.earnedAt)
-          }))
+        migrationData.progress = JSON.parse(savedProgress);
+      }
+
+      const result = await apiCall('/migrate', {
+        method: 'POST',
+        body: JSON.stringify(migrationData)
+      }, 10000);
+
+      if (result?.success) {
+        // Only mark migration complete after server confirms successful persistence
+        localStorage.setItem(MIGRATION_KEY, 'true');
+      }
+    } catch (e) {
+      // Do not mark as migrated on failure — will retry next load
+      console.warn('localStorage migration failed, will retry next load:', e);
+    }
+  };
+
+  // 1. Initial load: server is the source of truth
+  useEffect(() => {
+    const loadFromServer = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Attempt migration before loading (only runs once, only if server is empty)
+        await attemptMigration();
+
+        // Load authoritative state from server
+        const response = await apiCall('/tasks', {}, 5000);
+
+        if (response?.success && Array.isArray(response.tasks)) {
+          setTasks(parseTasks(response.tasks));
+
+          if (response.progress) {
+            setProgress(prev => ({
+              ...prev,
+              ...parseProgress(response.progress)
+            }));
+          }
+        }
+      } catch (err: any) {
+        console.error('Failed to load from server:', err);
+        setError('Could not connect to server');
+        toast({
+          title: "⚠️ Connection Error",
+          description: "Could not load data from server. Please check your connection."
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadData();
-  }, [user, token]);
+    loadFromServer();
+  }, []);
 
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(progress));
-  }, [progress]);
-
-  // Calculate today's progress
+  // 2. Calculate today's progress whenever tasks update
   useEffect(() => {
     const isToday = (d: Date) => {
       const now = new Date();
@@ -126,258 +139,155 @@ export function useTaskManager() {
         d.getDate() === now.getDate()
       );
     };
-    const todayTasks = tasksAreToday
-      ? tasks
-      : tasks.filter(task => isToday(new Date(task.createdAt)));
-    
+
+    const todayTasks = tasks.filter(task => isToday(new Date(task.createdAt)));
     const completed = todayTasks.filter(task => task.completed).length;
     const total = todayTasks.length;
-    const points = completed * 10; // 10 points per completed task
-    
+    const points = completed * 10;
+
     setProgress(prev => ({
       ...prev,
       todayProgress: { completed, total, points }
     }));
-  }, [tasks, tasksAreToday]);
+  }, [tasks]);
 
-  const addTask = async (taskData: Omit<Task, 'id' | 'createdAt' | 'completed'>) => {
-    console.log('addTask called with:', taskData);
-    
-    if (user && token) {
-      try {
-        // Save to API
-        const response = await apiCall('/tasks', {
-          method: 'POST',
-          body: JSON.stringify(taskData)
-        });
-        
-        const newTask: Task = {
-          ...response.task,
-          id: response.task._id,
-          createdAt: new Date(response.task.createdAt),
-          completedAt: response.task.completedAt ? new Date(response.task.completedAt) : undefined
-        };
-        
-        setTasks(prev => [...prev, newTask]);
-        
-        toast({
-          title: "Task Added! 🎯",
-          description: `"${newTask.name}" is ready to tackle!`
-        });
-      } catch (error) {
-        console.error('Failed to add task to API:', error);
-        // Fallback to local storage
-        addTaskLocally(taskData);
-      }
-    } else {
-      // Offline mode
-      addTaskLocally(taskData);
-    }
-  };
-
-  const addTaskLocally = (taskData: Omit<Task, 'id' | 'createdAt' | 'completed'>) => {
+  // 3. Optimistic Add Task: updates UI instantly, then syncs to server
+  const addTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'completed'>) => {
+    const taskId = generateUUID();
     const newTask: Task = {
       ...taskData,
-      id: generateUUID(),
+      id: taskId,
       completed: false,
       createdAt: new Date()
     };
-    
+
+    // Instant local state update
     setTasks(prev => [...prev, newTask]);
-    
+
     toast({
       title: "Task Added! 🎯",
       description: `"${newTask.name}" is ready to tackle!`
     });
+
+    // Sync to server
+    apiCall('/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ ...taskData, id: taskId })
+    }).catch(() => {
+      // Rollback on failure
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      toast({
+        title: "⚠️ Failed to save task",
+        description: "The task could not be saved to the server."
+      });
+    });
   };
 
-  const completeTask = async (taskId: string) => {
-    if (user && token) {
-      try {
-        // Complete task via API
-        const response = await apiCall(`/tasks/${taskId}/complete`, {
-          method: 'PUT'
-        });
-        
-        setTasks(prev => prev.map(task => {
-          if (task.id === taskId) {
-            return {
-              ...task,
-              completed: true,
-              completedAt: new Date()
-            };
-          }
-          return task;
-        }));
-        
-        setProgress(prev => ({
-          ...prev,
-          totalPoints: prev.totalPoints + (response.pointsEarned || 10)
-        }));
-        
-        toast({
-          title: "Amazing! 🎉",
-          description: `+${response.pointsEarned || 10} points for completing the task!`
-        });
-        
-        // Show new badges if any
-        if (response.newBadges && response.newBadges.length > 0) {
-          response.newBadges.forEach((badge: any) => {
-            toast({
-              title: `New Badge Earned! ${badge.icon}`,
-              description: `${badge.name}: ${badge.description}`
-            });
-          });
-        }
-      } catch (error) {
-        console.error('Failed to complete task via API:', error);
-        completeTaskLocally(taskId);
-      }
-    } else {
-      completeTaskLocally(taskId);
-    }
-  };
+  // 4. Optimistic Complete Task
+  const completeTask = (taskId: string) => {
+    const previousTasks = [...tasks];
+    const previousProgress = { ...progress };
 
-  const completeTaskLocally = (taskId: string) => {
+    // Instant local state update
     setTasks(prev => prev.map(task => {
       if (task.id === taskId && !task.completed) {
-        const completedTask = {
-          ...task,
-          completed: true,
-          completedAt: new Date()
-        };
-        
-        setProgress(prev => ({
-          ...prev,
-          totalPoints: prev.totalPoints + 10
-        }));
-        
-        toast({
-          title: "Amazing! 🎉",
-          description: `+10 points for completing "${task.name}"!`
-        });
-        
-        checkForNewBadges();
-        
-        return completedTask;
+        return { ...task, completed: true, completedAt: new Date() };
       }
       return task;
     }));
-  };
 
-  const uncompleteTask = async (taskId: string) => {
-    if (user && token) {
-      try {
-        // Uncomplete task via API
-        const response = await apiCall(`/tasks/${taskId}/uncomplete`, {
-          method: 'PUT'
-        });
-        
-        setTasks(prev => prev.map(task => {
-          if (task.id === taskId) {
-            return {
-              ...task,
-              completed: false,
-              completedAt: undefined
-            };
-          }
-          return task;
-        }));
-        
+    setProgress(prev => ({
+      ...prev,
+      totalPoints: prev.totalPoints + 10
+    }));
+
+    toast({
+      title: "Amazing! 🎉",
+      description: "+10 points for completing the task!"
+    });
+
+    // Sync to server and use authoritative progress from response
+    apiCall(`/tasks/${taskId}/complete`, {
+      method: 'PUT'
+    }).then(res => {
+      if (res?.progress) {
         setProgress(prev => ({
           ...prev,
-          totalPoints: Math.max(0, prev.totalPoints - (response.pointsDeducted || 10))
+          ...parseProgress(res.progress)
         }));
-      } catch (error) {
-        console.error('Failed to uncomplete task via API:', error);
-        uncompleteTaskLocally(taskId);
       }
-    } else {
-      uncompleteTaskLocally(taskId);
-    }
+      if (res?.newBadges?.length > 0) {
+        res.newBadges.forEach((badge: any) => {
+          toast({
+            title: `New Badge Earned! ${badge.icon}`,
+            description: `${badge.name}: ${badge.description}`
+          });
+        });
+      }
+    }).catch(() => {
+      // Rollback on failure
+      setTasks(previousTasks);
+      setProgress(previousProgress);
+      toast({
+        title: "⚠️ Failed to complete task",
+        description: "Could not save completion to server."
+      });
+    });
   };
 
-  const uncompleteTaskLocally = (taskId: string) => {
+  // 5. Optimistic Uncomplete Task
+  const uncompleteTask = (taskId: string) => {
+    const previousTasks = [...tasks];
+    const previousProgress = { ...progress };
+
     setTasks(prev => prev.map(task => {
       if (task.id === taskId && task.completed) {
-        setProgress(prev => ({
-          ...prev,
-          totalPoints: Math.max(0, prev.totalPoints - 10)
-        }));
-        
-        return {
-          ...task,
-          completed: false,
-          completedAt: undefined
-        };
+        return { ...task, completed: false, completedAt: undefined };
       }
       return task;
     }));
-  };
 
-  const deleteTask = async (taskId: string) => {
-    if (user && token) {
-      try {
-        // Delete task via API
-        await apiCall(`/tasks/${taskId}`, {
-          method: 'DELETE'
-        });
-        
-        setTasks(prev => prev.filter(task => task.id !== taskId));
-      } catch (error) {
-        console.error('Failed to delete task via API:', error);
-        deleteTaskLocally(taskId);
+    setProgress(prev => ({
+      ...prev,
+      totalPoints: Math.max(0, prev.totalPoints - 10)
+    }));
+
+    // Sync to server
+    apiCall(`/tasks/${taskId}/uncomplete`, {
+      method: 'PUT'
+    }).then(res => {
+      if (res?.progress) {
+        setProgress(prev => ({
+          ...prev,
+          ...parseProgress(res.progress)
+        }));
       }
-    } else {
-      deleteTaskLocally(taskId);
-    }
+    }).catch(() => {
+      setTasks(previousTasks);
+      setProgress(previousProgress);
+      toast({
+        title: "⚠️ Failed to update task",
+        description: "Could not save change to server."
+      });
+    });
   };
 
-  const deleteTaskLocally = (taskId: string) => {
+  // 6. Optimistic Delete Task
+  const deleteTask = (taskId: string) => {
+    const previousTasks = [...tasks];
+
     setTasks(prev => prev.filter(task => task.id !== taskId));
-  };
 
-  const checkForNewBadges = () => {
-    const newBadges: Badge[] = [];
-    const completedToday = progress.todayProgress.completed + 1;
-    
-    // First task badge
-    if (completedToday === 1 && !progress.badges.some(b => b.id === 'first_task')) {
-      newBadges.push({
-        id: 'first_task',
-        name: 'Getting Started',
-        description: 'Completed your first task!',
-        icon: '🌟',
-        type: 'bronze',
-        earnedAt: new Date()
+    apiCall(`/tasks/${taskId}`, {
+      method: 'DELETE'
+    }).catch(() => {
+      // Rollback on failure
+      setTasks(previousTasks);
+      toast({
+        title: "⚠️ Failed to delete task",
+        description: "Could not delete task from server."
       });
-    }
-    
-    // Daily achiever badge
-    if (completedToday >= 5 && !progress.badges.some(b => b.id === 'daily_achiever')) {
-      newBadges.push({
-        id: 'daily_achiever',
-        name: 'Daily Achiever',
-        description: 'Completed 5 tasks in one day!',
-        icon: '🏆',
-        type: 'gold',
-        earnedAt: new Date()
-      });
-    }
-    
-    if (newBadges.length > 0) {
-      setProgress(prev => ({
-        ...prev,
-        badges: [...prev.badges, ...newBadges]
-      }));
-      
-      newBadges.forEach(badge => {
-        toast({
-          title: `New Badge Earned! ${badge.icon}`,
-          description: `${badge.name}: ${badge.description}`
-        });
-      });
-    }
+    });
   };
 
   const getTodayTasks = () => {
@@ -389,13 +299,15 @@ export function useTaskManager() {
         d.getDate() === now.getDate()
       );
     };
-    const list = tasksAreToday ? tasks : tasks.filter(task => isToday(new Date(task.createdAt)));
+    const list = tasks.filter(task => isToday(new Date(task.createdAt)));
     return list.sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
 
   return {
     tasks,
     progress,
+    isLoading,
+    error,
     addTask,
     completeTask,
     uncompleteTask,

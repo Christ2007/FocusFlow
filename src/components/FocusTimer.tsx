@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Timer } from 'lucide-react';
+import { Play, Pause, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface FocusTimerProps {
   className?: string;
@@ -82,12 +82,12 @@ export function FocusTimer({ className }: FocusTimerProps) {
       
       if (mode === 'focus') {
         toast({
-          title: "Focus session complete! 🎉",
+          title: "Focus session complete!",
           description: "Great work! Time for a well-deserved break."
         });
       } else {
         toast({
-          title: "Break's over! ⚡",
+          title: "Break's over!",
           description: "Ready to tackle your next focus session?"
         });
       }
@@ -101,29 +101,36 @@ export function FocusTimer({ className }: FocusTimerProps) {
     return () => clearInterval(interval);
   }, [isRunning, timeLeft, mode, toast]);
 
-  const progressPercentage = mode === 'focus' 
-    ? ((25 * 60 - timeLeft) / (25 * 60)) * 100
-    : ((5 * 60 - timeLeft) / (5 * 60)) * 100;
+  const totalSeconds = mode === 'focus' ? 25 * 60 : 5 * 60;
+  const progressPercentage = ((totalSeconds - timeLeft) / totalSeconds) * 100;
 
   return (
-    <Card className={`p-4 sm:p-6 ${className}`}>
-      <div className="text-center space-y-3 sm:space-y-4">
+    <section className={cn("space-y-5", className)}>
+      <div>
         {/* Header */}
-        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
-          <Timer className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-          <h3 className="font-semibold text-base sm:text-lg">
-            {mode === 'focus' ? 'Focus Time' : 'Break Time'}
-          </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "w-2 h-2 rounded-full transition-colors duration-200",
+              isRunning ? (mode === 'focus' ? "bg-primary animate-pulse" : "bg-energy animate-pulse") : "bg-muted-foreground/40"
+            )} />
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+              {mode === 'focus' ? 'Focus Session' : 'Short Break'}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={switchMode}
+            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 py-1 px-2.5 rounded-md hover:bg-accent/60"
+          >
+            Switch to {mode === 'focus' ? 'break' : 'focus'}
+          </button>
         </div>
 
         {/* Timer Display */}
-        <div className="relative">
-          <div className="text-3xl sm:text-4xl font-mono font-bold text-foreground mb-3 sm:mb-4">
-            {formatTime(timeLeft)}
-          </div>
-          
-          {/* Progress Ring Visual */}
-          <div className="mx-auto mb-4 sm:mb-6 relative w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32">
+        <div className="flex flex-col items-center gap-6 py-1">
+          {/* Progress Ring */}
+          <div className="relative w-44 h-44 sm:w-48 sm:h-48">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
               {/* Background circle */}
               <circle
@@ -131,7 +138,7 @@ export function FocusTimer({ className }: FocusTimerProps) {
                 cy="60"
                 r="50"
                 stroke="hsl(var(--muted))"
-                strokeWidth="8"
+                strokeWidth="5"
                 fill="none"
               />
               {/* Progress circle */}
@@ -139,8 +146,8 @@ export function FocusTimer({ className }: FocusTimerProps) {
                 cx="60"
                 cy="60"
                 r="50"
-                stroke={mode === 'focus' ? "hsl(var(--focus))" : "hsl(var(--energy))"}
-                strokeWidth="8"
+                stroke={mode === 'focus' ? "hsl(var(--primary))" : "hsl(var(--energy))"}
+                strokeWidth="5"
                 fill="none"
                 strokeLinecap="round"
                 strokeDasharray={`${2 * Math.PI * 50}`}
@@ -149,72 +156,49 @@ export function FocusTimer({ className }: FocusTimerProps) {
               />
             </svg>
             
-            {/* Mode Icon in center */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className={`text-lg sm:text-2xl p-2 sm:p-3 rounded-full ${
-                mode === 'focus' 
-                  ? 'bg-focus/10 text-focus' 
-                  : 'bg-energy/10 text-energy'
-              }`}>
-                {mode === 'focus' ? '🎯' : '☕'}
-              </div>
+            {/* Time in center */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl sm:text-4xl font-mono font-semibold tracking-tight tabular-nums text-foreground">
+                {formatTime(timeLeft)}
+              </span>
+              <span className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground mt-1">
+                {isRunning ? (mode === 'focus' ? 'Focusing' : 'Resting') : 'Paused'}
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3">
-          <Button
-            size="default"
-            variant={mode === 'focus' ? 'focus' : 'energy'}
-            onClick={toggleTimer}
-            className="flex-1 h-10 sm:h-12 text-sm sm:text-base"
-          >
-            {isRunning ? (
-              <>
-                <Pause className="h-5 w-5 mr-2" />
-                Pause
-              </>
-            ) : (
-              <>
-                <Play className="h-5 w-5 mr-2" />
-                Start
-              </>
-            )}
-          </Button>
-          
-          <Button
-            size="default"
-            variant="outline"
-            onClick={resetTimer}
-            className="h-10 sm:h-12 w-10 sm:w-12 p-0"
-          >
-            <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-          </Button>
-        </div>
-
-        {/* Mode Switch */}
-        <Button
-          variant="ghost"
-          onClick={switchMode}
-          className="text-xs sm:text-sm text-muted-foreground hover:text-foreground h-8 sm:h-10"
-        >
-          Switch to {mode === 'focus' ? 'Break' : 'Focus'} Mode
-        </Button>
-
-        {/* Tips */}
-        <div className="text-xs text-muted-foreground mt-3 sm:mt-4 p-2 sm:p-3 bg-muted/50 rounded-lg">
-          {mode === 'focus' ? (
-            <div>
-              💡 <strong>Focus tip:</strong> Minimize distractions and work on one task at a time.
-            </div>
-          ) : (
-            <div>
-              🌟 <strong>Break tip:</strong> Step away from your workspace and move around!
-            </div>
-          )}
+          {/* Controls */}
+          <div className="flex items-center gap-2.5 w-full max-w-[220px]">
+            <Button
+              size="default"
+              onClick={toggleTimer}
+              className="flex-1 h-10 text-sm font-semibold tracking-wide"
+            >
+              {isRunning ? (
+                <>
+                  <Pause className="h-4 w-4 mr-1.5" />
+                  Pause
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-1.5" />
+                  Start
+                </>
+              )}
+            </Button>
+            
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={resetTimer}
+              aria-label="Reset timer"
+              className="h-10 w-10 text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
-    </Card>
+    </section>
   );
 }

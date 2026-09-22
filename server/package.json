@@ -1,7 +1,7 @@
 {
   "name": "adhd-focus-hub-server",
   "version": "1.0.0",
-  "description": "Backend server for ADHD Focus Hub with MongoDB and authentication",
+  "description": "Backend server for ADHD Focus Hub with JSON storage",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -10,20 +10,22 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^8.0.3",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
+    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-validator": "^7.0.1",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5"
+    "helmet": "^7.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "keywords": ["adhd", "productivity", "tasks", "mongodb", "authentication"],
-  "author": "Your Name",
+  "keywords": [
+    "adhd",
+    "productivity",
+    "tasks",
+    "docker"
+  ],
+  "author": "",
   "license": "MIT"
 }

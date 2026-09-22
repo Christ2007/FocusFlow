@@ -1,5 +1,4 @@
 import { Badge } from '@/types/tasks';
-import { Card } from '@/components/ui/card';
 import { Trophy, Star, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -9,27 +8,14 @@ interface BadgeShowcaseProps {
 }
 
 export function BadgeShowcase({ badges, className }: BadgeShowcaseProps) {
-  const getBadgeStyle = (type: Badge['type']) => {
-    switch (type) {
-      case 'gold':
-        return 'bg-badge-gold text-white shadow-lg border-badge-gold/30';
-      case 'silver':
-        return 'bg-badge-silver text-foreground shadow-md border-badge-silver/30';
-      case 'bronze':
-        return 'bg-badge-bronze text-white shadow-md border-badge-bronze/30';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
-
   const getBadgeIcon = (type: Badge['type']) => {
     switch (type) {
       case 'gold':
-        return <Trophy className="h-4 w-4" />;
+        return <Trophy className="h-3.5 w-3.5 text-badge-gold" />;
       case 'silver':
-        return <Medal className="h-4 w-4" />;
+        return <Medal className="h-3.5 w-3.5 text-badge-silver" />;
       case 'bronze':
-        return <Star className="h-4 w-4" />;
+        return <Star className="h-3.5 w-3.5 text-badge-bronze" />;
       default:
         return null;
     }
@@ -37,63 +23,50 @@ export function BadgeShowcase({ badges, className }: BadgeShowcaseProps) {
 
   if (badges.length === 0) {
     return (
-      <Card className={cn("p-6 text-center", className)}>
-        <div className="text-muted-foreground">
-          <Trophy className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Complete tasks to earn your first badge!</p>
-        </div>
-      </Card>
+      <section className={cn("space-y-2", className)}>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Milestones
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Milestones appear here as tasks and streaks are completed.
+        </p>
+      </section>
     );
   }
 
   return (
-    <Card className={cn("p-4", className)}>
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Trophy className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Achievements</h3>
-          <span className="text-sm text-muted-foreground">({badges.length})</span>
-        </div>
+    <section className={cn("space-y-3", className)}>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Milestones
+        </h3>
+        <span className="text-xs font-medium text-muted-foreground tabular-nums">
+          {badges.length} unlocked
+        </span>
+      </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          {badges.map((badge) => (
-            <div
-              key={badge.id}
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border transition-all duration-300 hover:scale-105 animate-bounce-in",
-                getBadgeStyle(badge.type)
-              )}
-            >
-              <div className="flex-shrink-0 text-2xl">
-                {badge.icon}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium truncate">{badge.name}</h4>
-                  {getBadgeIcon(badge.type)}
-                </div>
-                <p className="text-sm opacity-90 truncate">{badge.description}</p>
-              </div>
-              
-              <div className="text-xs opacity-75">
-                {badge.earnedAt.toLocaleDateString()}
-              </div>
+      <div className="space-y-2">
+        {badges.map((badge) => (
+          <div
+            key={badge.id}
+            className="flex items-start gap-2.5 py-1.5 transition-colors"
+          >
+            <div className="mt-0.5 text-muted-foreground/70 flex-shrink-0">
+              {getBadgeIcon(badge.type)}
             </div>
-          ))}
-        </div>
-
-        {badges.length >= 3 && (
-          <div className="text-center pt-3 border-t">
-            <div className="text-sm font-medium text-primary animate-pulse-glow">
-              🌟 Badge Collector!
-            </div>
-            <div className="text-xs text-muted-foreground">
-              You're building an impressive collection!
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-medium text-foreground truncate">{badge.name}</span>
+                <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 tabular-nums">
+                  {badge.earnedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-tight mt-0.5 truncate">{badge.description}</p>
             </div>
           </div>
-        )}
+        ))}
       </div>
-    </Card>
+    </section>
   );
 }

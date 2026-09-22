@@ -1,96 +1,142 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-// Import routes
-import authRoutes from './routes/auth.js';
+// Import task routes and store
 import taskRoutes from './routes/tasks.js';
+import { initDatabase, DB_PATH } from './database.js';
+import { getAllTasks, getProgress, migrateData } from './taskStore.js';
 
 // Load environment variables
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 80;
+const HOST = process.env.HOST || '0.0.0.0';
 
-// Security middleware
-app.use(helmet());
+// Initialize SQLite database on startup
+initDatabase();
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again later.'
-  }
-});
-app.use('/api/', limiter);
+// Security middleware with relaxed CSP for local/Docker production assets
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+  })
+);
 
-// CORS configuration
-// In development, reflect the request origin to simplify LAN testing
-const corsOptions = {
-  origin:
-    (process.env.NODE_ENV || 'development') === 'development'
-      ? true
-      : (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:8080'),
-  credentials: true,
-};
-app.use(cors(corsOptions));
+// CORS configuration - allow all origins for local/Docker productivity access
+app.use(cors({ origin: true, credentials: true }));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/adhd-focus-hub')
-  .then(() => {
-    console.log('✅ Connected to MongoDB');
-  })
-  .catch((error) => {
-    console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
-  });
-
-// MongoDB connection event handlers
-mongoose.connection.on('error', (error) => {
-  console.error('MongoDB connection error:', error);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected');
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  try {
-    await mongoose.connection.close();
-    console.log('MongoDB connection closed.');
-    process.exit(0);
-  } catch (error) {
-    console.error('Error during graceful shutdown:', error);
-    process.exit(1);
-  }
-});
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
-    message: 'ADHD Focus Hub API is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    message: 'FocusFlow API is running',
+    databasePath: DB_PATH,
+    timestamp: new Date().toISOString()
   });
 });
 
+// Full state endpoint
+app.get('/api/state', (req, res) => {
+  try {
+    const tasks = getAllTasks();
+    const progress = getProgress();
+    res.json({
+      success: true,
+      tasks,
+      progress
+    });
+  } catch (error) {
+    console.error('Get state error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error getting state'
+    });
+  }
+});
+
+// Progress endpoint
+app.get('/api/progress', (req, res) => {
+  try {
+    const progress = getProgress();
+    res.json({
+      success: true,
+      progress
+    });
+  } catch (error) {
+    console.error('Get progress error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error getting progress'
+    });
+  }
+});
+
+// Milestones endpoint
+app.get('/api/milestones', (req, res) => {
+  try {
+    const progress = getProgress();
+    res.json({
+      success: true,
+      milestones: progress.badges || [],
+      badges: progress.badges || []
+    });
+  } catch (error) {
+    console.error('Get milestones error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error getting milestones'
+    });
+  }
+});
+
+// One-time localStorage migration endpoint
+app.post('/api/migrate', (req, res) => {
+  try {
+    const result = migrateData(req.body);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Migration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Migration failed'
+    });
+  }
+});
+
 // API routes
-app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// 404 handler
-app.use('*', (req, res) => {
+// Serve frontend static build if present
+const distPath = path.resolve(__dirname, '../dist');
+if (fs.existsSync(distPath)) {
+  console.log(`📦 Serving static frontend from: ${distPath}`);
+  app.use(express.static(distPath));
+
+  // SPA fallback for all remaining GET requests
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
+// 404 handler for unmatched API routes
+app.use('/api/*', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'API endpoint not found'
@@ -99,45 +145,17 @@ app.use('*', (req, res) => {
 
 // Global error handler
 app.use((error, req, res, next) => {
-  console.error('Global error handler:', error);
-  
-  // Mongoose validation error
-  if (error.name === 'ValidationError') {
-    const errors = Object.values(error.errors).map(err => ({
-      field: err.path,
-      message: err.message
-    }));
-    return res.status(400).json({
-      success: false,
-      message: 'Validation error',
-      errors
-    });
-  }
-  
-  // Mongoose duplicate key error
-  if (error.code === 11000) {
-    const field = Object.keys(error.keyValue)[0];
-    return res.status(400).json({
-      success: false,
-      message: `${field} already exists`
-    });
-  }
-  
-  // Default error
+  console.error('Server error:', error);
   res.status(500).json({
     success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : error.message
+    message: error.message || 'Internal server error'
   });
 });
 
 // Start server
-app.listen(PORT, '10.0.0.34', () => {
-  console.log(`🚀 Server running on ${process.env.SERVER_URL}`);
-  console.log(`📱 Client URL: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
-  console.log(`🗄️  Database: ${process.env.MONGODB_URI ? 'MongoDB Atlas' : 'Local MongoDB'}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 FocusFlow server running on http://${HOST}:${PORT}`);
+  console.log(`📁 Database location: ${DB_PATH}`);
 });
 
 export default app;

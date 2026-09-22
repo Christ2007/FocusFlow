@@ -1,220 +1,213 @@
-# Welcome to My Project 🚀
+# FocusFlow 🧠🎯
 
-## Project Info
+FocusFlow is an ADHD-friendly, self-hosted personal productivity hub designed to turn chaos into calm. It combines gamified task management, visual progress tracking, milestone achievements, and Pomodoro-style focus timers into a distraction-free web application.
 
-**Live Site**: https://yourwebsite.com  
-*(Replace with your actual deployed domain or preview URL)*
-
-## How to Edit This Project
-
-There are several ways to work on the codebase:
-
-### Local Development
-
-If you’d like to run and edit the project locally:
-
-```sh
-# Step 1: Clone the repository
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate into the project directory
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install dependencies
-npm install
-
-# Step 4: Start the development server
-npm run dev
-
-```
-
-# ADHD Focus Hub 🧠
-
-A comprehensive productivity app designed specifically for people with ADHD, featuring task management, focus timers, progress tracking, and gamification elements.
-
-## Features ✨
-
-### 🎯 **Task Management**
-- Quick task creation with smart time defaults
-- Category-based organization (Focus, Energy, Creative, Rest)
-- Priority levels and custom icons
-- Mobile-responsive design
-
-### ⏱️ **Focus Timer**
-- Pomodoro-style focus sessions (25min focus / 5min break)
-- Visual progress ring with smooth animations
-- Auto-switching between focus and break modes
-- Customizable session lengths
-
-### 📊 **Progress Tracking**
-- Daily completion statistics
-- Streak tracking and point system
-- Achievement badges and rewards
-- Visual progress indicators
-
-### 🔐 **User Authentication**
-- Secure user registration and login
-- JWT-based authentication
-- User profiles and preferences
-- Data persistence across devices
-
-### 💾 **Data Storage**
-- MongoDB backend for user data and tasks
-- Real-time synchronization
-- Offline mode with localStorage fallback
-- Automatic data backup
-
-## Tech Stack 🛠️
-
-### Frontend
-- **React 18** with TypeScript
-- **Vite** for fast development
-- **Tailwind CSS** for styling
-- **Radix UI** components
-- **Lucide React** icons
-- **React Hook Form** for forms
-- **Sonner** for notifications
-
-### Backend
-- **Node.js** with Express
-- **MongoDB** with Mongoose
-- **JWT** authentication
-- **bcryptjs** for password hashing
-- **CORS** and security middleware
-
-## Getting Started 🚀
-
-### Prerequisites
-- Node.js (v16 or higher)
-- MongoDB (local or Atlas)
-- npm or yarn
-
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone <repository-url>
-cd ADHD
-```
-
-2. **Install frontend dependencies**
-```bash
-npm install
-```
-
-3. **Install backend dependencies**
-```bash
-cd server
-npm install
-```
-
-4. **Set up environment variables**
-```bash
-cd server
-cp .env.example .env
-# Edit .env with your MongoDB URI and JWT secret
-```
-
-5. **Start MongoDB** (if using local installation)
-```bash
-mongod
-```
-
-6. **Start the backend server**
-```bash
-cd server
-npm run dev
-```
-
-7. **Start the frontend development server**
-```bash
-cd ..
-npm run dev
-```
-
-8. **Open your browser**
-Navigate to `http://localhost:5173`
-
-## Environment Variables 🔧
-
-Create a `.env` file in the `server` directory:
-
-```env
-# MongoDB Configuration
-MONGODB_URI=mongodb://localhost:27017/adhd-focus-hub
-# For MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/adhd-focus-hub
-
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRES_IN=7d
-
-# Server Configuration
-PORT=5000
-NODE_ENV=development
-
-# CORS Configuration
-CLIENT_URL=http://localhost:5173
-```
-
-## API Endpoints 📡
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user
-- `PUT /api/auth/profile` - Update user profile
-
-### Tasks
-- `GET /api/tasks` - Get all user tasks
-- `GET /api/tasks/today` - Get today's tasks
-- `POST /api/tasks` - Create new task
-- `PUT /api/tasks/:id` - Update task
-- `PUT /api/tasks/:id/complete` - Mark task complete
-- `PUT /api/tasks/:id/uncomplete` - Mark task incomplete
-- `DELETE /api/tasks/:id` - Delete task
-
-## Mobile Responsive Design 📱
-
-The app is fully optimized for mobile devices with:
-- Touch-friendly interfaces
-- Responsive breakpoints (sm: 640px, md: 768px, lg: 1024px)
-- Mobile-first CSS approach
-- Optimized button sizes and spacing
-- Smooth animations and transitions
-
-## Development 💻
-
-### Frontend Development
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-```
-
-### Backend Development
-```bash
-cd server
-npm run dev          # Start with nodemon
-npm start            # Start production server
-```
-
-## Contributing 🤝
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License 📄
-
-This project is licensed under the MIT License.
-
-## Support 💬
-
-For support or questions, please open an issue on GitHub.
+FocusFlow is distributed as a **self-hosted, single-container application** with **zero configuration, no user accounts, and zero cloud lock-in**. Everything is persisted locally to an embedded SQLite database backed by Docker volumes.
 
 ---
 
-**Built with ❤️ for the ADHD community**
+## ✨ Features
+
+- 🎯 **ADHD-Friendly Task Flow**:
+  - Quick task capture with smart time defaults.
+  - Energy & brain-state categories: **Focus**, **Energy**, **Creative**, and **Rest**.
+  - Priority levels, start/end scheduling, and custom iconography.
+  - Interactive checklists with instant visual feedback.
+
+- ⏱️ **Focus Timer (Pomodoro)**:
+  - 25-minute focus intervals and 5-minute restorative breaks.
+  - Smooth animated progress ring with audio cue notifications.
+  - One-click mode switching between focus sessions and breaks.
+
+- 🏆 **Gamification & Habit Building**:
+  - Daily progress completion percentage with visual progress bars.
+  - Streak tracking to encourage daily consistency.
+  - Reward points earned for completing tasks.
+  - Unlockable achievement badges (Getting Started, Daily Achiever, etc.).
+
+- 🌓 **Distraction-Free Editorial UI**:
+  - Clean, high-contrast, modern interface with zero clutter.
+  - Seamless Light and Dark mode toggle (persisted per browser).
+  - Fully responsive across desktop, tablet, and mobile devices.
+
+- 💾 **Reliable Server-Side Persistence**:
+  - Powered by **SQLite** (`/data/focusflow.db`) with Write-Ahead Logging (`WAL` mode) for maximum durability and speed.
+  - Persistent Docker volume storage survives container restarts and upgrades.
+  - Automatic, conservative one-time migration from legacy browser `localStorage`.
+
+---
+
+## 🏗️ Self-Hosted Architecture
+
+FocusFlow is built for simplicity and sovereignty:
+
+```
+Browser A ──┐
+Browser B ──┼──> FocusFlow Container (:80) ──> Express API ──> SQLite (/data/focusflow.db)
+Browser C ──┘                                                          │
+                                                                 Docker Volume
+                                                             (focusflow-data:/data)
+```
+
+- **Shared Instance Model**: There are no logins, passwords, or multi-user silos. Everyone accessing the same FocusFlow container shares the same workspace and tasks.
+- **Data Isolation**: Running a separate Docker container with its own volume provides an isolated, independent FocusFlow instance.
+
+---
+
+## 🚀 Quick Start with Docker
+
+### Option 1: Docker CLI (Recommended)
+
+Run FocusFlow with a single command:
+
+```bash
+docker run -d \
+  --name focusflow \
+  -p 8080:80 \
+  -v focusflow-data:/data \
+  --restart unless-stopped \
+  christo0000/focusflow:latest
+```
+
+Open your browser at [http://localhost:8080](http://localhost:8080).
+
+> **Note**: The persistent volume `focusflow-data` will store `/data/focusflow.db`. When updating to new versions, stopping or removing the container will **never** lose your tasks or streaks.
+
+---
+
+### Option 2: Docker Compose
+
+Create a `docker-compose.yml` file (or use the one in this repository):
+
+```yaml
+services:
+  focusflow:
+    image: christo0000/focusflow:latest
+    container_name: focusflow
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
+      - PORT=80
+      - DATABASE_PATH=/data/focusflow.db
+    volumes:
+      - focusflow-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:80/api/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+volumes:
+  focusflow-data:
+    name: focusflow-data
+```
+
+Start the container:
+
+```bash
+docker compose up -d
+```
+
+To stop:
+
+```bash
+docker compose down
+```
+
+---
+
+## 🔄 Updating to a Newer Version
+
+To update FocusFlow without losing your data:
+
+```bash
+# Pull the latest image
+docker pull christo0000/focusflow:latest
+
+# Recreate the container (volume keeps all your data safe!)
+docker compose up -d --force-recreate
+```
+
+---
+
+## 🛠️ Building from Source
+
+If you prefer building your own Docker image directly from this repository:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/christo0000/focusflow.git
+cd focusflow
+
+# 2. Build the Docker image
+docker build -t focusflow:latest .
+
+# 3. Run your custom build
+docker run -d \
+  --name focusflow \
+  -p 8080:80 \
+  -v focusflow-data:/data \
+  focusflow:latest
+```
+
+### Local Development (Without Docker)
+
+FocusFlow can also be run locally for development:
+
+```bash
+# Install frontend dependencies
+npm install
+
+# Install server dependencies
+cd server && npm install && cd ..
+
+# Start the backend server (runs on port 5000)
+npm run server
+
+# In another terminal, start the Vite development server (runs on port 8080 with API proxy)
+npm run dev
+```
+
+---
+
+## 📁 Backup and Restore
+
+Your entire database is a single file: `/data/focusflow.db` (and temporary WAL files while running).
+
+### Backup:
+```bash
+docker cp focusflow:/data/focusflow.db ./focusflow-backup.db
+```
+
+### Restore:
+```bash
+docker cp ./focusflow-backup.db focusflow:/data/focusflow.db
+```
+
+---
+
+## 🔌 API Reference
+
+For custom integrations, scripts, or home automation (Home Assistant, Raycast, etc.), FocusFlow exposes a minimal JSON REST API:
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Service and SQLite healthcheck |
+| `GET` | `/api/state` | Returns full state (all tasks + progress) |
+| `GET` | `/api/tasks` | Get all tasks (supports `?completed=true/false&category=...`) |
+| `POST` | `/api/tasks` | Create a new task |
+| `PUT` | `/api/tasks/:id` | Update task details |
+| `DELETE` | `/api/tasks/:id` | Delete a task |
+| `POST` | `/api/tasks/:id/complete` | Mark task completed (awards points & checks milestones) |
+| `POST` | `/api/tasks/:id/uncomplete` | Revert completion |
+| `GET` | `/api/progress` | Get current streak, points, and badge milestones |
+| `GET` | `/api/milestones` | List earned milestones and badges |
+
+---
+
+## 📜 License
+
+MIT License. Feel free to use, modify, and self-host!

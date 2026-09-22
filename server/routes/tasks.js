@@ -1,42 +1,55 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import Task from '../models/Task.js';
-import User from '../models/User.js';
-import { authenticateToken } from '../middleware/auth.js';
+import {
+  getAllTasks,
+  getTodayTasks,
+  getProgress,
+  addTask,
+  updateTask,
+  completeTask,
+  uncompleteTask,
+  deleteTask
+} from '../taskStore.js';
 
 const router = express.Router();
 
 // @route   GET /api/tasks
-// @desc    Get all tasks for authenticated user
-// @access  Private
-router.get('/', authenticateToken, async (req, res) => {
+// @desc    Get all tasks and progress
+// @access  Public
+router.get('/', (req, res) => {
   try {
     const { date, completed, category } = req.query;
-    let query = { userId: req.user._id };
+    let tasks = getAllTasks();
 
-    // Filter by date
     if (date) {
       const targetDate = new Date(date);
-      const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
-      query.createdAt = { $gte: startOfDay, $lte: endOfDay };
+      const isTargetDay = (dateStr) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        return (
+          d.getFullYear() === targetDate.getFullYear() &&
+          d.getMonth() === targetDate.getMonth() &&
+          d.getDate() === targetDate.getDate()
+        );
+      };
+      tasks = tasks.filter(t => isTargetDay(t.createdAt));
     }
 
-    // Filter by completion status
     if (completed !== undefined) {
-      query.completed = completed === 'true';
+      const isCompleted = completed === 'true';
+      tasks = tasks.filter(t => t.completed === isCompleted);
     }
 
-    // Filter by category
     if (category) {
-      query.category = category;
+      tasks = tasks.filter(t => t.category === category);
     }
 
-    const tasks = await Task.find(query).sort({ startTime: 1, createdAt: -1 });
+    const progress = getProgress();
 
     res.json({
       success: true,
-      tasks
+      tasks,
+      progress
     });
   } catch (error) {
     console.error('Get tasks error:', error);
@@ -48,17 +61,29 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // @route   GET /api/tasks/today
-// @desc    Get today's tasks for authenticated user
-// @access  Private
-router.get('/today', authenticateToken, async (req, res) => {
+// @desc    Get today's tasks and stats
+// @access  Public
+router.get('/today', (req, res) => {
   try {
-    const tasks = await Task.getTodayTasks(req.user._id);
-    const stats = await Task.getUserStats(req.user._id);
+    const tasks = getTodayTasks();
+    const progress = getProgress();
+    const completedToday = tasks.filter(t => t.completed).length;
 
     res.json({
       success: true,
       tasks,
-      stats
+      stats: {
+        today: {
+          total: tasks.length,
+          completed: completedToday,
+          points: completedToday * 10
+        },
+        total: {
+          totalCompleted: progress.totalPoints ? Math.floor(progress.totalPoints / 10) : 0,
+          totalPoints: progress.totalPoints || 0
+        }
+      },
+      progress
     });
   } catch (error) {
     console.error('Get today tasks error:', error);
@@ -69,15 +94,55 @@ router.get('/today', authenticateToken, async (req, res) => {
   }
 });
 
+// @route   GET /api/tasks/progress
+// @desc    Get progress details
+// @access  Public
+router.get('/progress', (req, res) => {
+  try {
+    const progress = getProgress();
+    res.json({
+      success: true,
+      progress
+    });
+  } catch (error) {
+    console.error('Get progress error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error getting progress'
+    });
+  }
+});
+
+// @route   GET /api/tasks/milestones
+// @desc    Get milestones/badges
+// @access  Public
+router.get('/milestones', (req, res) => {
+  try {
+    const progress = getProgress();
+    res.json({
+      success: true,
+      milestones: progress.badges || [],
+      badges: progress.badges || []
+    });
+  } catch (error) {
+    console.error('Get milestones error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error getting milestones'
+    });
+  }
+});
+
 // @route   POST /api/tasks
 // @desc    Create a new task
-// @access  Private
-router.post('/', authenticateToken, [
+// @access  Public
+router.post('/', [
   body('name')
     .trim()
     .isLength({ min: 1, max: 200 })
     .withMessage('Task name must be between 1 and 200 characters'),
   body('category')
+    .optional()
     .isIn(['focus', 'energy', 'creative', 'rest'])
     .withMessage('Category must be one of: focus, energy, creative, rest'),
   body('priority')
@@ -85,12 +150,14 @@ router.post('/', authenticateToken, [
     .isIn(['low', 'medium', 'high'])
     .withMessage('Priority must be one of: low, medium, high'),
   body('startTime')
+    .optional()
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .withMessage('Start time must be in HH:MM format'),
   body('endTime')
+    .optional()
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .withMessage('End time must be in HH:MM format')
-], async (req, res) => {
+], (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -101,13 +168,7 @@ router.post('/', authenticateToken, [
       });
     }
 
-    const taskData = {
-      ...req.body,
-      userId: req.user._id
-    };
-
-    const task = new Task(taskData);
-    await task.save();
+    const task = addTask(req.body);
 
     res.status(201).json({
       success: true,
@@ -125,8 +186,8 @@ router.post('/', authenticateToken, [
 
 // @route   PUT /api/tasks/:id
 // @desc    Update a task
-// @access  Private
-router.put('/:id', authenticateToken, [
+// @access  Public
+router.put('/:id', [
   body('name')
     .optional()
     .trim()
@@ -140,7 +201,7 @@ router.put('/:id', authenticateToken, [
     .optional()
     .isIn(['low', 'medium', 'high'])
     .withMessage('Priority must be one of: low, medium, high')
-], async (req, res) => {
+], (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -151,20 +212,13 @@ router.put('/:id', authenticateToken, [
       });
     }
 
-    const task = await Task.findOne({
-      _id: req.params.id,
-      userId: req.user._id
-    });
-
+    const task = updateTask(req.params.id, req.body);
     if (!task) {
       return res.status(404).json({
         success: false,
         message: 'Task not found'
       });
     }
-
-    Object.assign(task, req.body);
-    await task.save();
 
     res.json({
       success: true,
@@ -180,85 +234,24 @@ router.put('/:id', authenticateToken, [
   }
 });
 
-// @route   PUT /api/tasks/:id/complete
-// @desc    Mark task as complete
-// @access  Private
-router.put('/:id/complete', authenticateToken, async (req, res) => {
+// Helper handler for task completion (supports both PUT and POST)
+const handleCompleteTask = (req, res) => {
   try {
-    const task = await Task.findOne({
-      _id: req.params.id,
-      userId: req.user._id
-    });
-
-    if (!task) {
+    const result = completeTask(req.params.id);
+    if (!result) {
       return res.status(404).json({
         success: false,
         message: 'Task not found'
       });
     }
 
-    if (task.completed) {
-      return res.status(400).json({
-        success: false,
-        message: 'Task is already completed'
-      });
-    }
-
-    await task.markCompleted();
-
-    // Update user progress and streak
-    const user = req.user;
-    user.progress.totalPoints += task.points;
-    
-    // Update streak when completing first task of the day
-    const streakUpdated = user.updateStreak();
-    if (streakUpdated) {
-      console.log('User streak updated from task completion');
-    }
-    
-    await user.save();
-
-    // Check for new badges (simplified version)
-    const stats = await Task.getUserStats(req.user._id);
-    const completedToday = stats.today.completed;
-
-    const newBadges = [];
-    
-    // First task badge
-    if (completedToday === 1 && !user.progress.badges.some(b => b.id === 'first_task')) {
-      newBadges.push({
-        id: 'first_task',
-        name: 'Getting Started',
-        description: 'Completed your first task!',
-        icon: '🌟',
-        type: 'bronze',
-        earnedAt: new Date()
-      });
-    }
-    
-    // Daily achiever badge
-    if (completedToday >= 5 && !user.progress.badges.some(b => b.id === 'daily_achiever')) {
-      newBadges.push({
-        id: 'daily_achiever',
-        name: 'Daily Achiever',
-        description: 'Completed 5 tasks in one day!',
-        icon: '🏆',
-        type: 'gold',
-        earnedAt: new Date()
-      });
-    }
-
-    if (newBadges.length > 0) {
-      user.progress.badges.push(...newBadges);
-      await user.save();
-    }
-
     res.json({
       success: true,
       message: 'Task completed successfully',
-      task,
-      pointsEarned: task.points,
-      newBadges
+      task: result.task,
+      pointsEarned: result.pointsEarned,
+      progress: result.progress,
+      newBadges: result.newBadges
     });
   } catch (error) {
     console.error('Complete task error:', error);
@@ -267,44 +260,31 @@ router.put('/:id/complete', authenticateToken, async (req, res) => {
       message: 'Server error completing task'
     });
   }
-});
+};
 
-// @route   PUT /api/tasks/:id/uncomplete
-// @desc    Mark task as incomplete
-// @access  Private
-router.put('/:id/uncomplete', authenticateToken, async (req, res) => {
+// @route   PUT/POST /api/tasks/:id/complete
+// @desc    Mark task as complete
+// @access  Public
+router.put('/:id/complete', handleCompleteTask);
+router.post('/:id/complete', handleCompleteTask);
+
+// Helper handler for uncomplete (supports both PUT and POST)
+const handleUncompleteTask = (req, res) => {
   try {
-    const task = await Task.findOne({
-      _id: req.params.id,
-      userId: req.user._id
-    });
-
-    if (!task) {
+    const result = uncompleteTask(req.params.id);
+    if (!result) {
       return res.status(404).json({
         success: false,
         message: 'Task not found'
       });
     }
 
-    if (!task.completed) {
-      return res.status(400).json({
-        success: false,
-        message: 'Task is not completed'
-      });
-    }
-
-    await task.markIncomplete();
-
-    // Update user progress (subtract points)
-    const user = req.user;
-    user.progress.totalPoints = Math.max(0, user.progress.totalPoints - task.points);
-    await user.save();
-
     res.json({
       success: true,
       message: 'Task marked as incomplete',
-      task,
-      pointsDeducted: task.points
+      task: result.task,
+      pointsDeducted: result.pointsDeducted,
+      progress: result.progress
     });
   } catch (error) {
     console.error('Uncomplete task error:', error);
@@ -313,30 +293,25 @@ router.put('/:id/uncomplete', authenticateToken, async (req, res) => {
       message: 'Server error uncompleting task'
     });
   }
-});
+};
+
+// @route   PUT/POST /api/tasks/:id/uncomplete
+// @desc    Mark task as incomplete
+// @access  Public
+router.put('/:id/uncomplete', handleUncompleteTask);
+router.post('/:id/uncomplete', handleUncompleteTask);
 
 // @route   DELETE /api/tasks/:id
 // @desc    Delete a task
-// @access  Private
-router.delete('/:id', authenticateToken, async (req, res) => {
+// @access  Public
+router.delete('/:id', (req, res) => {
   try {
-    const task = await Task.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user._id
-    });
-
-    if (!task) {
+    const deleted = deleteTask(req.params.id);
+    if (!deleted) {
       return res.status(404).json({
         success: false,
         message: 'Task not found'
       });
-    }
-
-    // If task was completed, subtract points from user
-    if (task.completed) {
-      const user = req.user;
-      user.progress.totalPoints = Math.max(0, user.progress.totalPoints - task.points);
-      await user.save();
     }
 
     res.json({

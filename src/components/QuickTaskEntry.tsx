@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Task, TaskCategory, TASK_CATEGORIES, TASK_ICONS } from '@/types/tasks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Clock } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface QuickTaskEntryProps {
   onAddTask: (task: Omit<Task, 'id' | 'createdAt' | 'completed'>) => void;
@@ -72,26 +71,32 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
 
   if (!isExpanded) {
     return (
-      <Card className="p-3 sm:p-4 border-dashed border-2 border-primary/30 hover:border-primary/50 transition-colors">
-        <Button
-          onClick={() => {
-            console.log('Expanding form');
-            setIsExpanded(true);
-            const currentTime = getCurrentTime();
-            setTaskData(prev => ({
-              ...prev,
-              startTime: currentTime,
-              endTime: getEndTime(currentTime)
-            }));
-          }}
-          variant="ghost"
-          className="w-full h-12 sm:h-14 text-muted-foreground hover:text-primary text-sm sm:text-base"
-        >
-          <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-          <span className="hidden sm:inline">Add a new task...</span>
-          <span className="sm:hidden">Add task...</span>
-        </Button>
-      </Card>
+      <button
+        type="button"
+        onClick={() => {
+          console.log('Expanding form');
+          setIsExpanded(true);
+          const currentTime = getCurrentTime();
+          setTaskData(prev => ({
+            ...prev,
+            startTime: currentTime,
+            endTime: getEndTime(currentTime)
+          }));
+        }}
+        className="w-full h-12 sm:h-13 px-4 rounded-xl border border-border/80 bg-card/50 hover:bg-card hover:border-primary/50 shadow-card hover:shadow-task flex items-center justify-between transition-all duration-150 group text-left cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors duration-150">
+            <Plus className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-150">
+            Add a task for today...
+          </span>
+        </div>
+        <span className="hidden sm:inline-flex text-xs font-medium text-muted-foreground/70 bg-muted/60 px-2 py-0.5 rounded border border-border/40">
+          + Add
+        </span>
+      </button>
     );
   }
 
@@ -113,19 +118,21 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
   });
 
   return (
-    <Card className="p-3 sm:p-4 animate-slide-up">
-      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+    <div className="rounded-xl border border-border/90 bg-card p-4 sm:p-5 shadow-card">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Task Name */}
-        <Input
-          placeholder="What do you want to accomplish?"
-          value={taskData.name}
-          onChange={(e) => {
-            console.log('Task name changed:', e.target.value);
-            setTaskData(prev => ({ ...prev, name: e.target.value }));
-          }}
-          className="text-sm sm:text-base h-11 sm:h-12"
-          autoFocus
-        />
+        <div>
+          <Input
+            placeholder="What do you want to accomplish?"
+            value={taskData.name}
+            onChange={(e) => {
+              console.log('Task name changed:', e.target.value);
+              setTaskData(prev => ({ ...prev, name: e.target.value }));
+            }}
+            className="text-sm sm:text-base font-medium h-11 sm:h-12 px-3.5"
+            autoFocus
+          />
+        </div>
 
         {/* Category and Icon Selection */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -166,7 +173,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
               {iconOptions.map(([key, icon]) => (
                 <SelectItem key={key} value={icon}>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{icon}</span>
+                    <span className="text-base">{icon}</span>
                     <span className="capitalize">{key}</span>
                   </div>
                 </SelectItem>
@@ -178,7 +185,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
         {/* Time Range */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Start Time</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Start</label>
             <Input
               type="time"
               value={taskData.startTime}
@@ -194,7 +201,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
             />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">End Time</label>
+            <label className="text-xs text-muted-foreground mb-1 block">End</label>
             <Input
               type="time"
               value={taskData.endTime}
@@ -215,17 +222,17 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="low">Low Priority</SelectItem>
-            <SelectItem value="medium">Medium Priority</SelectItem>
-            <SelectItem value="high">High Priority</SelectItem>
+            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="high">High</SelectItem>
           </SelectContent>
         </Select>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-2.5 pt-1">
           <Button 
             type="button" 
-            className="flex-1 h-11 sm:h-12 text-sm sm:text-base font-medium" 
+            className="flex-1 h-10 text-sm font-semibold" 
             disabled={!taskData.name.trim()}
             onClick={(e) => {
               e.preventDefault();
@@ -237,19 +244,18 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
               handleSubmit();
             }}
           >
-            <Plus className="h-4 w-4 mr-2" />
             Add Task
           </Button>
           <Button 
             type="button" 
             variant="ghost" 
-            className="h-11 sm:h-12 px-3 sm:px-4 text-sm sm:text-base"
+            className="h-10 px-4 text-sm font-medium"
             onClick={() => setIsExpanded(false)}
           >
             Cancel
           </Button>
         </div>
       </form>
-    </Card>
+    </div>
   );
 }

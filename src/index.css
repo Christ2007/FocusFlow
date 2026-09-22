@@ -2,131 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ADHD-Friendly Task Management Design System */
-
 @layer base {
   :root {
-    /* Base colors - warm, calming background */
-    --background: 220 15% 97%;
-    --foreground: 225 15% 15%;
+    /* Background & foreground */
+    --background: 40 20% 98%;
+    --foreground: 220 20% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 225 15% 15%;
+    --card-foreground: 220 20% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 225 15% 15%;
+    --popover-foreground: 220 20% 10%;
 
-    /* Task completion green - dopamine hit! */
-    --primary: 145 65% 45%;
+    /* Accent — softened, sophisticated slate-indigo */
+    --primary: 224 48% 44%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 145 65% 65%;
 
-    /* Focus blue for concentration */
-    --secondary: 220 50% 92%;
-    --secondary-foreground: 220 25% 25%;
-    --focus: 215 75% 55%;
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 220 14% 30%;
+
+    /* Task category colors — restrained */
+    --focus: 215 55% 48%;
     --focus-foreground: 0 0% 100%;
 
-    /* Energy orange for motivation */
-    --energy: 25 85% 60%;
+    --energy: 25 65% 50%;
     --energy-foreground: 0 0% 100%;
-    --energy-glow: 25 85% 75%;
 
-    /* Creative purple for inspiration */
-    --creative: 270 60% 65%;
+    --creative: 270 40% 52%;
     --creative-foreground: 0 0% 100%;
-    --creative-glow: 270 60% 80%;
 
-    /* Gentle warnings and productivity */
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 10% 46%;
 
-    --accent: 145 65% 92%;
-    --accent-foreground: 145 65% 25%;
+    --accent: 220 14% 94%;
+    --accent-foreground: 220 20% 10%;
 
-    --destructive: 0 75% 60%;
+    --destructive: 0 65% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 95%;
-    --ring: 145 65% 45%;
+    --border: 220 10% 90%;
+    --input: 220 10% 90%;
+    --ring: 224 48% 44%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Gamification colors */
-    --badge-gold: 45 85% 65%;
-    --badge-silver: 210 15% 75%;
-    --badge-bronze: 25 60% 55%;
-    
-    /* Progress gradients */
-    --gradient-success: linear-gradient(135deg, hsl(145 65% 45%), hsl(145 65% 65%));
-    --gradient-focus: linear-gradient(135deg, hsl(215 75% 55%), hsl(215 75% 70%));
-    --gradient-energy: linear-gradient(135deg, hsl(25 85% 60%), hsl(25 85% 75%));
-    --gradient-creative: linear-gradient(135deg, hsl(270 60% 65%), hsl(270 60% 80%));
-    
-    /* Shadows for depth */
-    --shadow-card: 0 4px 12px -2px hsl(220 15% 15% / 0.08);
-    --shadow-task: 0 2px 8px -1px hsl(220 15% 15% / 0.1);
-    --shadow-success: 0 4px 20px -4px hsl(145 65% 45% / 0.3);
-    --shadow-glow: 0 0 30px -5px hsl(145 65% 65% / 0.4);
+    /* Badge colors */
+    --badge-gold: 42 70% 52%;
+    --badge-silver: 210 10% 64%;
+    --badge-bronze: 25 45% 48%;
 
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    /* Shadows — minimal */
+    --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-task: 0 1px 2px 0 rgb(0 0 0 / 0.04);
 
-    --sidebar-background: 0 0% 98%;
+    /* Transitions */
+    --transition-smooth: 150ms ease;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: 40 15% 96%;
+    --sidebar-foreground: 220 20% 10%;
+    --sidebar-primary: 224 48% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 94%;
+    --sidebar-accent-foreground: 220 20% 10%;
+    --sidebar-border: 220 10% 90%;
+    --sidebar-ring: 224 48% 44%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Background & foreground */
+    --background: 224 20% 8%;
+    --foreground: 220 15% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 224 16% 12%;
+    --card-foreground: 220 15% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 224 16% 13%;
+    --popover-foreground: 220 15% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Accent — softened, sophisticated slate-indigo */
+    --primary: 226 50% 62%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 224 14% 16%;
+    --secondary-foreground: 220 14% 86%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Task category colors — tuned for dark bg */
+    --focus: 215 55% 60%;
+    --focus-foreground: 0 0% 100%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --energy: 25 65% 58%;
+    --energy-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --creative: 270 45% 64%;
+    --creative-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --muted: 224 14% 16%;
+    --muted-foreground: 220 12% 64%;
+
+    --accent: 224 14% 17%;
+    --accent-foreground: 220 15% 95%;
+
+    --destructive: 0 60% 52%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 224 12% 20%;
+    --input: 224 14% 17%;
+    --ring: 226 50% 62%;
+
+    /* Badge colors */
+    --badge-gold: 42 78% 62%;
+    --badge-silver: 210 12% 68%;
+    --badge-bronze: 25 55% 56%;
+
+    /* Shadows — subtle desktop depth */
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.24);
+    --shadow-task: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+
+    /* Sidebar */
+    --sidebar-background: 224 20% 8.5%;
+    --sidebar-foreground: 220 14% 90%;
+    --sidebar-primary: 228 76% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 224 14% 16%;
+    --sidebar-accent-foreground: 220 14% 90%;
+    --sidebar-border: 224 12% 20%;
+    --sidebar-ring: 228 76% 65%;
   }
 }
 
@@ -137,5 +138,7 @@
 
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
