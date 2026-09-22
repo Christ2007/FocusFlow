@@ -56,9 +56,10 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
     
     if (!taskData.name.trim()) return;
 
-    // Auto-fill times if missing
-    let finalStartTime = taskData.startTime;
-    let finalEndTime = taskData.endTime;
+    // Keep text-entry time fields safe for the API's HH:MM format while
+    // preserving the current automatic start/end defaults.
+    let finalStartTime = isValidTime(taskData.startTime) ? taskData.startTime : '';
+    let finalEndTime = isValidTime(taskData.endTime) ? taskData.endTime : '';
     if (!finalStartTime || !finalEndTime) {
       const currentTime = getCurrentTime();
       finalStartTime = finalStartTime || currentTime;
@@ -109,6 +110,8 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
     const now = new Date();
     return now.toTimeString().slice(0, 5);
   };
+
+  const isValidTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 
   const getEndTime = (startTime: string) => {
     if (!startTime) return '';
@@ -232,14 +235,20 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
           <div className="min-w-0">
             <label className="text-xs text-muted-foreground mb-1 block">Start</label>
             <Input
-              type="time"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="HH:MM"
+              maxLength={5}
+              pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
+              aria-label="Start time, in 24-hour HH:MM format"
               value={taskData.startTime}
               onChange={(e) => {
                 const startTime = e.target.value;
                 setTaskData(prev => ({ 
                   ...prev, 
                   startTime,
-                  endTime: prev.endTime || getEndTime(startTime)
+                  endTime: !prev.endTime && isValidTime(startTime) ? getEndTime(startTime) : prev.endTime
                 }));
               }}
             />
@@ -247,7 +256,13 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
           <div className="min-w-0">
             <label className="text-xs text-muted-foreground mb-1 block">End</label>
             <Input
-              type="time"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="HH:MM"
+              maxLength={5}
+              pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
+              aria-label="End time, in 24-hour HH:MM format"
               value={taskData.endTime}
               onChange={(e) => {
                 setTaskData(prev => ({ ...prev, endTime: e.target.value }));
@@ -349,7 +364,7 @@ export function QuickTaskEntry({ onAddTask }: QuickTaskEntryProps) {
                   setCustomEst(e.target.value);
                   setTaskData(prev => ({ ...prev, estimatedDuration: 0 }));
                 }}
-                className="h-7 text-xs w-20 px-2"
+                className="h-7 text-xs w-20 px-2 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
             </div>
           </div>

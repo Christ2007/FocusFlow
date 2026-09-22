@@ -55,7 +55,12 @@ export function AnalyticsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await apiCall(`/analytics?period=${period}&date=${selectedDate}`);
+      // Send the browser's UTC offset so day boundaries follow the user's own
+      // calendar. The container/server usually runs in UTC, while the dates the
+      // user picks are local — without this, anything logged just after local
+      // midnight lands on the previous day.
+      const tzOffset = -new Date().getTimezoneOffset();
+      const res = await apiCall(`/analytics?period=${period}&date=${selectedDate}&tzOffset=${tzOffset}`);
       if (res?.success) {
         setData(res);
       } else {

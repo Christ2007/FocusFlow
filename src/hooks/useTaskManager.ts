@@ -393,6 +393,15 @@ export function useTaskManager() {
   // 8. Log focus session and accumulate actual time
   const logFocusSession = async (taskId: string | null, durationMinutes: number) => {
     if (durationMinutes <= 0) return;
+
+    // Reflect the logged time on the task immediately so pausing or completing
+    // the timer updates the UI at once, then reconcile with the server total.
+    if (taskId) {
+      setTasks(prev => prev.map(t => t.id === taskId
+        ? { ...t, actualDuration: (t.actualDuration || 0) + durationMinutes }
+        : t));
+    }
+
     try {
       const res = await apiCall('/focus-sessions', {
         method: 'POST',
@@ -406,19 +415,28 @@ export function useTaskManager() {
 
       if (taskId) {
         setTasks(prev => prev.map(t => {
-          if (t.id === taskId) {
-            return {
-              ...t,
-              actualDuration: res?.session?.task ? res.session.task.actualDuration : (t.actualDuration || 0) + durationMinutes
-            };
-          }
-          return t;
+          if (t.id !== taskId) return t;
+          const serverMinutes = res?.session?.task?.actualDuration;
+          // Logged time only ever grows, so a late response must never
+          // overwrite a newer total.
+          return {
+            ...t,
+            actualDuration: typeof serverMinutes === 'number'
+              ? Math.max(serverMinutes, t.actualDuration || 0)
+              : (t.actualDuration || 0)
+          };
         }));
       }
 
       return res;
     } catch (err) {
       console.error('Failed to log focus session:', err);
+      if (taskId) {
+        // Roll back the optimistic update when the session was not saved.
+        setTasks(prev => prev.map(t => t.id === taskId
+          ? { ...t, actualDuration: Math.max(0, (t.actualDuration || 0) - durationMinutes) }
+          : t));
+      }
     }
   };
 

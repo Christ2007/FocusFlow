@@ -115,7 +115,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-background transition-colors duration-200">
       {/* Header */}
       <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-6 min-w-0">
             <div
               className="flex items-center gap-2.5 cursor-pointer select-none flex-shrink-0"
@@ -183,7 +183,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {error && (
           <div className="mb-6 p-3.5 rounded-xl border border-destructive/40 bg-destructive/10 text-destructive text-xs flex items-center gap-2.5">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -196,11 +196,13 @@ export function Dashboard() {
             quick-entry state survive navigation between views. */}
         {currentView === 'analytics' && <AnalyticsPage />}
         <div className={cn(
-          "grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-10",
+          // Tablet proportions (7/5 split, 32px gutter) are kept at every large
+          // width so desktop matches the roomier tablet layout.
+          "grid grid-cols-1 lg:grid-cols-12 gap-8",
           currentView === 'analytics' && "hidden"
         )}>
             {/* Main Content — Tasks core focus */}
-            <div className="lg:col-span-7 xl:col-span-8 space-y-6 min-w-0">
+            <div className="lg:col-span-7 space-y-6 min-w-0">
               {/* Quick Add Task */}
               <section>
                 <QuickTaskEntry onAddTask={addTask} />
@@ -270,7 +272,7 @@ export function Dashboard() {
                 ) : (
                   /* Standard Today's Tasks View */
                   <div>
-                    <div className="flex items-center justify-between pb-1">
+                    <div className="flex items-center justify-between pb-2">
                       <div className="flex items-center gap-2.5">
                         <h2 className="text-sm font-semibold tracking-tight text-foreground">
                           Today's Tasks
@@ -291,16 +293,16 @@ export function Dashboard() {
                         <p className="text-xs text-muted-foreground animate-pulse">Loading tasks...</p>
                       </div>
                     ) : todayTasks.length === 0 ? (
-                      <div className="py-6 px-5 sm:px-6 rounded-xl border border-border/70 bg-card/30 sm:flex sm:items-center sm:justify-between gap-4">
+                      <div className="py-7 px-6 sm:px-8 rounded-xl border border-border/70 bg-card/30 sm:flex sm:items-center sm:justify-between gap-4 sm:gap-8">
                         <div>
                           <h3 className="text-sm font-semibold text-foreground tracking-tight">
                             No tasks scheduled for today
                           </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-1.5">
                             Use the quick entry above to plan your priorities.
                           </p>
                         </div>
-                        <div className="mt-2.5 sm:mt-0 flex-shrink-0">
+                        <div className="mt-3 sm:mt-0 flex-shrink-0">
                           <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md border border-border/40">
                             Queue clear
                           </span>
@@ -352,7 +354,7 @@ export function Dashboard() {
             </div>
 
             {/* Sidebar — Editorial Layout with Focus Session as Priority */}
-            <div className="min-w-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6 lg:col-span-5 xl:col-span-4">
+            <div className="min-w-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6 lg:col-span-5">
               {/* Focus Session — Visual Anchor */}
               <div className="md:col-span-2 lg:col-span-1 rounded-xl border border-border/70 bg-card/40 p-4 sm:p-6 shadow-card">
                 <FocusTimer

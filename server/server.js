@@ -9,7 +9,17 @@ import { fileURLToPath } from 'url';
 // Import task routes and store
 import taskRoutes from './routes/tasks.js';
 import { initDatabase, DB_PATH } from './database.js';
-import { getAllTasks, getProgress, migrateData, getAnalyticsData, recordFocusSession } from './taskStore.js';
+import {
+  getAllTasks,
+  getProgress,
+  migrateData,
+  getAnalyticsData,
+  recordFocusSession,
+  getTimerPreferences,
+  updateTimerPreferences,
+  TIMER_DURATION_DEFAULTS,
+  TIMER_DURATION_LIMITS
+} from './taskStore.js';
 
 // Load environment variables
 dotenv.config();
@@ -117,14 +127,41 @@ app.post('/api/migrate', (req, res) => {
   }
 });
 
+// Timer preferences are shared by this self-hosted, single-workspace instance.
+app.get('/api/timer-preferences', (req, res) => {
+  try {
+    res.json({ success: true, preferences: getTimerPreferences() });
+  } catch (error) {
+    console.error('Get timer preferences error:', error);
+    res.status(500).json({ success: false, message: 'Server error getting timer preferences' });
+  }
+});
+
+app.put('/api/timer-preferences', (req, res) => {
+  try {
+    const preferences = updateTimerPreferences(req.body);
+    res.json({ success: true, preferences });
+  } catch (error) {
+    const isValidationError = error.message?.includes('Timer durations must be whole minutes');
+    res.status(isValidationError ? 400 : 500).json({
+      success: false,
+      message: isValidationError
+        ? error.message
+        : 'Server error saving timer preferences',
+      limits: isValidationError ? TIMER_DURATION_LIMITS : undefined,
+      defaults: isValidationError ? TIMER_DURATION_DEFAULTS : undefined
+    });
+  }
+});
+
 // API routes
 app.use('/api/tasks', taskRoutes);
 
 // Analytics endpoint
 app.get('/api/analytics', (req, res) => {
   try {
-    const { period, date } = req.query;
-    const data = getAnalyticsData({ period, date });
+    const { period, date, tzOffset } = req.query;
+    const data = getAnalyticsData({ period, date, tzOffsetMinutes: tzOffset });
     res.json({
       success: true,
       ...data

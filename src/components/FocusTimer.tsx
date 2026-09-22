@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw, Eye } from 'lucide-react';
+import { Play, Pause, RotateCcw, Eye, Settings2 } from 'lucide-react';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import {
   Select,
@@ -12,6 +12,9 @@ import {
 import { Task } from '@/types/tasks';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useApi } from '@/hooks/useApi';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface FocusTimerProps {
   className?: string;
@@ -24,6 +27,36 @@ interface FocusTimerProps {
 const FOCUS_DURATION_SECONDS = 25 * 60;
 const BREAK_DURATION_SECONDS = 5 * 60;
 const MIN_LOGGABLE_SECONDS = 30;
+const TIMER_DURATION_MINUTES_MIN = 1;
+const TIMER_DURATION_MINUTES_MAX = 240;
+
+interface TimerPreferences {
+  focusDurationMinutes: number;
+  shortBreakDurationMinutes: number;
+  longBreakDurationMinutes: number;
+}
+
+const DEFAULT_TIMER_PREFERENCES: TimerPreferences = {
+  focusDurationMinutes: 25,
+  shortBreakDurationMinutes: 5,
+  longBreakDurationMinutes: 15
+};
+
+const isValidDuration = (value: unknown): value is number =>
+  typeof value === 'number' &&
+  Number.isInteger(value) &&
+  value >= TIMER_DURATION_MINUTES_MIN &&
+  value <= TIMER_DURATION_MINUTES_MAX;
+
+const sanitizeTimerPreferences = (value: unknown): TimerPreferences => {
+  if (!value || typeof value !== 'object') return DEFAULT_TIMER_PREFERENCES;
+  const preferences = value as Partial<TimerPreferences>;
+  return isValidDuration(preferences.focusDurationMinutes) &&
+    isValidDuration(preferences.shortBreakDurationMinutes) &&
+    isValidDuration(preferences.longBreakDurationMinutes)
+    ? preferences as TimerPreferences
+    : DEFAULT_TIMER_PREFERENCES;
+};
 
 export function FocusTimer({
   className,
@@ -33,8 +66,19 @@ export function FocusTimer({
   onLogSession
 }: FocusTimerProps) {
   const [timeLeft, setTimeLeft] = useState(FOCUS_DURATION_SECONDS);
+  const [intervalDurationSeconds, setIntervalDurationSeconds] = useState(FOCUS_DURATION_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
+  const [breakType, setBreakType] = useState<'short' | 'long'>('short');
+  const [preferences, setPreferences] = useState<TimerPreferences>(DEFAULT_TIMER_PREFERENCES);
+  const [durationDrafts, setDurationDrafts] = useState<Record<keyof TimerPreferences, string>>({
+    focusDurationMinutes: String(DEFAULT_TIMER_PREFERENCES.focusDurationMinutes),
+    shortBreakDurationMinutes: String(DEFAULT_TIMER_PREFERENCES.shortBreakDurationMinutes),
+    longBreakDurationMinutes: String(DEFAULT_TIMER_PREFERENCES.longBreakDurationMinutes)
+  });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
   // Screen Wake Lock: keep the display on while the timer runs. The timer's
   // `isRunning` state is the single source of truth; the hook no-ops on
@@ -42,6 +86,7 @@ export function FocusTimer({
   const { isHeld: wakeLockHeld } = useWakeLock(isRunning);
   const [localSelectedTask, setLocalSelectedTask] = useState<string | null>(null);
   const { toast } = useToast();
+  const { apiCall } = useApi();
 
   // Timestamp-based timing state (refs so interval callbacks never go stale)
   const endAtRef = useRef<number | null>(null);
@@ -50,6 +95,8 @@ export function FocusTimer({
   const focusSegmentStartRef = useRef<number | null>(null);
   const sessionTaskIdRef = useRef<string | null>(null);
   const completingRef = useRef(false);
+  const intervalHasStartedRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const currentTaskId = selectedTaskId !== undefined ? selectedTaskId : localSelectedTask;
   const currentTask = tasks.find(t => t.id === currentTaskId);
@@ -57,8 +104,16 @@ export function FocusTimer({
   // Mirror latest values into refs so timer callbacks always see fresh data
   const modeRef = useRef(mode);
   modeRef.current = mode;
+  const breakTypeRef = useRef(breakType);
+  breakTypeRef.current = breakType;
   const isRunningRef = useRef(isRunning);
   isRunningRef.current = isRunning;
+  const timeLeftRef = useRef(timeLeft);
+  timeLeftRef.current = timeLeft;
+  const intervalDurationSecondsRef = useRef(intervalDurationSeconds);
+  intervalDurationSecondsRef.current = intervalDurationSeconds;
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
   const currentTaskRef = useRef(currentTask);
   currentTaskRef.current = currentTask;
   const currentTaskIdRef = useRef(currentTaskId);
@@ -76,40 +131,154 @@ export function FocusTimer({
     }
   };
 
-  // Play alarm sound when timer ends
-  const playAlarm = () => {
+  const getConfiguredDurationSeconds = useCallback((timerMode: 'focus' | 'break', timerBreakType = breakTypeRef.current) => {
+    const minutes = timerMode === 'focus'
+      ? preferencesRef.current.focusDurationMinutes
+      : timerBreakType === 'long'
+        ? preferencesRef.current.longBreakDurationMinutes
+        : preferencesRef.current.shortBreakDurationMinutes;
+    return minutes * 60;
+  }, []);
+
+  const prepareNewInterval = useCallback((timerMode: 'focus' | 'break', timerBreakType = breakTypeRef.current) => {
+    const durationSeconds = getConfiguredDurationSeconds(timerMode, timerBreakType);
+    intervalHasStartedRef.current = false;
+    setIntervalDurationSeconds(durationSeconds);
+    setTimeLeft(durationSeconds);
+  }, [getConfiguredDurationSeconds]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    apiCall('/timer-preferences')
+      .then((res) => {
+        if (!isMounted) return;
+        const loadedPreferences = sanitizeTimerPreferences(res?.preferences);
+        setPreferences(loadedPreferences);
+        setDurationDrafts({
+          focusDurationMinutes: String(loadedPreferences.focusDurationMinutes),
+          shortBreakDurationMinutes: String(loadedPreferences.shortBreakDurationMinutes),
+          longBreakDurationMinutes: String(loadedPreferences.longBreakDurationMinutes)
+        });
+
+        // Only update the untouched, not-yet-started timer. An active or paused
+        // interval retains the duration it was created with.
+        if (!isRunningRef.current && !intervalHasStartedRef.current && timeLeftRef.current === intervalDurationSecondsRef.current) {
+          const loadedDurationSeconds = (modeRef.current === 'focus'
+            ? loadedPreferences.focusDurationMinutes
+            : breakTypeRef.current === 'long'
+              ? loadedPreferences.longBreakDurationMinutes
+              : loadedPreferences.shortBreakDurationMinutes) * 60;
+          setIntervalDurationSeconds(loadedDurationSeconds);
+          setTimeLeft(loadedDurationSeconds);
+        }
+      })
+      .catch(() => {
+        // The timer remains usable with the established defaults while offline.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [apiCall]);
+
+  // ---------------------------------------------------------------------------
+  // Timer alarm audio.
+  //
+  // iOS/Safari creates every AudioContext in the "suspended" state and only
+  // allows it to run once it has been resumed from a user gesture. The alarm
+  // used to build a brand new context inside the countdown callback — i.e.
+  // outside any gesture — so on iPad it stayed silent. Safari also caps the
+  // number of live contexts per page, so creating one per session eventually
+  // broke audio entirely. We therefore keep a single context for the life of
+  // the timer, prime it on the first tap, and reuse it when a session ends.
+  // ---------------------------------------------------------------------------
+  const getAudioContext = useCallback((): AudioContext | null => {
+    if (audioContextRef.current) return audioContextRef.current;
+    const AudioCtx = window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return null;
     try {
-      const AudioCtx = window.AudioContext ||
-        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtx) return;
-      const audioContext = new AudioCtx();
-      
+      audioContextRef.current = new AudioCtx();
+    } catch {
+      audioContextRef.current = null;
+    }
+    return audioContextRef.current;
+  }, []);
+
+  // Must run inside a user gesture (Start, Reset, mode switch) so iOS unlocks
+  // the context before the countdown finishes unattended.
+  const unlockAlarmAudio = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    // Declaring "playback" stops iPadOS from silencing the alarm with the
+    // hardware mute switch. Unsupported browsers simply ignore it.
+    try {
+      const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession;
+      if (session) session.type = 'playback';
+    } catch {
+      // Ignore — the alarm still plays where AudioSession is unsupported.
+    }
+
+    if (audioContext.state === 'suspended') {
+      void audioContext.resume().catch(() => {});
+    }
+
+    // A one-frame silent buffer is what actually completes the unlock on iOS.
+    try {
+      const source = audioContext.createBufferSource();
+      source.buffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+      source.connect(audioContext.destination);
+      source.start(0);
+    } catch {
+      // Ignore.
+    }
+  }, [getAudioContext]);
+
+  // Play alarm sound when timer ends
+  const playAlarm = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    const playBeeps = () => {
       const playBeep = (frequency: number, duration: number, delay: number) => {
         setTimeout(() => {
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-          oscillator.type = 'sine';
-          
-          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-          
-          oscillator.start(audioContext.currentTime);
-          oscillator.stop(audioContext.currentTime + duration);
+          try {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+          } catch {
+            // Ignore a single failed beep rather than losing the whole alarm.
+          }
         }, delay);
       };
 
       playBeep(800, 0.2, 0);
       playBeep(800, 0.2, 300);
       playBeep(800, 0.2, 600);
-    } catch {
-      // Audio playback fallback
+    };
+
+    // iOS can re-suspend the context after the screen locks or the page is
+    // backgrounded, so resume before playing instead of assuming it is running.
+    if (audioContext.state === 'suspended') {
+      audioContext.resume().then(playBeeps).catch(() => {});
+      return;
     }
-  };
+
+    playBeeps();
+  }, [getAudioContext]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -127,17 +296,37 @@ export function FocusTimer({
 
   // Log accumulated focus time to the server (attributed to the task the
   // session was started with). Returns the number of minutes logged.
-  const commitElapsedFocusTime = useCallback((): number => {
+  //
+  // `exactMinutes` is used when pausing: it logs only complete minutes and
+  // keeps the sub-minute remainder banked, so repeated pause/resume cycles can
+  // update the task straight away without rounding the same seconds twice.
+  // The default preserves the original end-of-session behavior (minimum one
+  // minute, rounded to the nearest minute).
+  const commitElapsedFocusTime = useCallback((exactMinutes = false): number => {
     captureFocusSegment();
     let minutesLogged = 0;
+
     if (modeRef.current === 'focus' && focusElapsedMsRef.current > 0) {
       const elapsedSeconds = focusElapsedMsRef.current / 1000;
-      if (elapsedSeconds >= MIN_LOGGABLE_SECONDS) {
+
+      if (exactMinutes) {
+        minutesLogged = Math.floor(elapsedSeconds / 60);
+        focusElapsedMsRef.current -= minutesLogged * 60000;
+      } else if (elapsedSeconds >= MIN_LOGGABLE_SECONDS) {
         minutesLogged = Math.max(1, Math.round(elapsedSeconds / 60));
-        onLogSessionRef.current?.(sessionTaskIdRef.current, minutesLogged);
+        focusElapsedMsRef.current = 0;
+      } else {
+        focusElapsedMsRef.current = 0;
       }
+    } else if (!exactMinutes) {
+      // Preserve the original unconditional reset for end-of-session commits.
+      focusElapsedMsRef.current = 0;
     }
-    focusElapsedMsRef.current = 0;
+
+    if (minutesLogged > 0) {
+      onLogSessionRef.current?.(sessionTaskIdRef.current, minutesLogged);
+    }
+
     return minutesLogged;
   }, [captureFocusSegment]);
 
@@ -156,8 +345,15 @@ export function FocusTimer({
     commitElapsedFocusTime();
     const newMode = modeRef.current === 'focus' ? 'break' : 'focus';
     setMode(newMode);
-    setTimeLeft(newMode === 'focus' ? FOCUS_DURATION_SECONDS : BREAK_DURATION_SECONDS);
-  }, [clearSwitchTimeout, commitElapsedFocusTime]);
+    if (newMode === 'break') {
+      // Preserve the original timer behavior: focus completion starts a short
+      // break unless the user explicitly chooses a long break before starting.
+      setBreakType('short');
+      prepareNewInterval(newMode, 'short');
+    } else {
+      prepareNewInterval(newMode);
+    }
+  }, [clearSwitchTimeout, commitElapsedFocusTime, prepareNewInterval]);
 
   const handleTimerComplete = useCallback(() => {
     if (completingRef.current) return;
@@ -186,28 +382,96 @@ export function FocusTimer({
       completingRef.current = false;
       switchMode();
     }, 2000);
-  }, [commitElapsedFocusTime, switchMode]);
+  }, [commitElapsedFocusTime, switchMode, playAlarm]);
 
   const resetTimer = () => {
     clearSwitchTimeout();
+    unlockAlarmAudio();
     setIsRunning(false);
     endAtRef.current = null;
     commitElapsedFocusTime();
-    setTimeLeft(mode === 'focus' ? FOCUS_DURATION_SECONDS : BREAK_DURATION_SECONDS);
+    prepareNewInterval(mode);
+  };
+
+  const switchBreakType = (nextBreakType: 'short' | 'long') => {
+    if (mode !== 'break' || isRunning || intervalHasStartedRef.current) return;
+    setBreakType(nextBreakType);
+    prepareNewInterval('break', nextBreakType);
+  };
+
+  const saveTimerPreferences = async (nextPreferences?: TimerPreferences) => {
+    const values = nextPreferences || (Object.entries(durationDrafts).reduce((result, [key, value]) => {
+      const parsed = Number(value);
+      return { ...result, [key]: parsed };
+    }, {} as TimerPreferences));
+
+    if (!isValidDuration(values.focusDurationMinutes) ||
+      !isValidDuration(values.shortBreakDurationMinutes) ||
+      !isValidDuration(values.longBreakDurationMinutes)) {
+      setSettingsError(`Enter whole-minute durations from ${TIMER_DURATION_MINUTES_MIN} to ${TIMER_DURATION_MINUTES_MAX}.`);
+      return;
+    }
+
+    setIsSavingPreferences(true);
+    setSettingsError(null);
+    try {
+      const res = await apiCall('/timer-preferences', {
+        method: 'PUT',
+        body: JSON.stringify(values)
+      });
+      const savedPreferences = sanitizeTimerPreferences(res?.preferences);
+      setPreferences(savedPreferences);
+      setDurationDrafts({
+        focusDurationMinutes: String(savedPreferences.focusDurationMinutes),
+        shortBreakDurationMinutes: String(savedPreferences.shortBreakDurationMinutes),
+        longBreakDurationMinutes: String(savedPreferences.longBreakDurationMinutes)
+      });
+      // Apply saved values straight away when this is the untouched timer
+      // shown before its first Start. Started (including paused) intervals
+      // retain their captured duration so elapsed-session behavior is intact.
+      if (!isRunningRef.current && !intervalHasStartedRef.current) {
+        const durationSeconds = (modeRef.current === 'focus'
+          ? savedPreferences.focusDurationMinutes
+          : breakTypeRef.current === 'long'
+            ? savedPreferences.longBreakDurationMinutes
+            : savedPreferences.shortBreakDurationMinutes) * 60;
+        setIntervalDurationSeconds(durationSeconds);
+        setTimeLeft(durationSeconds);
+      }
+      toast({ title: 'Timer settings saved', description: 'The displayed timer has been updated.' });
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : 'Could not save timer settings.');
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
+
+  const resetTimerPreferences = () => {
+    const defaults = { ...DEFAULT_TIMER_PREFERENCES };
+    setDurationDrafts({
+      focusDurationMinutes: String(defaults.focusDurationMinutes),
+      shortBreakDurationMinutes: String(defaults.shortBreakDurationMinutes),
+      longBreakDurationMinutes: String(defaults.longBreakDurationMinutes)
+    });
+    saveTimerPreferences(defaults);
   };
 
   const toggleTimer = () => {
     if (isRunning) {
-      // Pause: freeze remaining time and bank elapsed focus time
-      captureFocusSegment();
+      // Pause: freeze remaining time and log the banked focus time right away
+      // so the associated task's logged total updates instantly.
       endAtRef.current = null;
       setIsRunning(false);
+      commitElapsedFocusTime(true);
       return;
     }
     if (timeLeft <= 0 || completingRef.current) return;
+    // Unlock alarm audio while we still have a user gesture (see unlockAlarmAudio)
+    unlockAlarmAudio();
     // Start/resume from an absolute timestamp so the countdown stays
     // accurate even when the tab is throttled in the background
     endAtRef.current = Date.now() + timeLeft * 1000;
+    intervalHasStartedRef.current = true;
     if (mode === 'focus') {
       if (focusElapsedMsRef.current === 0) {
         sessionTaskIdRef.current = currentTaskId;
@@ -248,15 +512,21 @@ export function FocusTimer({
     }
   }, [currentTaskId, commitElapsedFocusTime]);
 
-  // Clean up the pending auto mode-switch on unmount
+  // Clean up the pending auto mode-switch and the alarm audio on unmount
   useEffect(() => {
     return () => {
       if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
+      const audioContext = audioContextRef.current;
+      audioContextRef.current = null;
+      if (audioContext && typeof audioContext.close === 'function') {
+        void audioContext.close().catch(() => {});
+      }
     };
   }, []);
 
-  const totalSeconds = mode === 'focus' ? FOCUS_DURATION_SECONDS : BREAK_DURATION_SECONDS;
-  const progressPercentage = ((totalSeconds - timeLeft) / totalSeconds) * 100;
+  const progressPercentage = intervalDurationSeconds > 0
+    ? Math.max(0, Math.min(100, ((intervalDurationSeconds - timeLeft) / intervalDurationSeconds) * 100))
+    : 0;
   const activeTasks = tasks.filter(t => !t.completed);
 
   return (
@@ -270,7 +540,7 @@ export function FocusTimer({
               isRunning ? (mode === 'focus' ? "bg-primary animate-pulse" : "bg-energy animate-pulse") : "bg-muted-foreground/40"
             )} />
             <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-              {mode === 'focus' ? 'Focus Session' : 'Short Break'}
+              {mode === 'focus' ? 'Focus Session' : breakType === 'long' ? 'Long Break' : 'Short Break'}
             </h3>
             {wakeLockHeld && (
               <span
@@ -282,13 +552,26 @@ export function FocusTimer({
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={switchMode}
-            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 py-1.5 px-3 rounded-md hover:bg-accent/60"
-          >
-            Switch to {mode === 'focus' ? 'break' : 'focus'}
-          </button>
+          <div className="flex items-center gap-1">
+            {mode === 'break' && (
+              <button
+                type="button"
+                onClick={() => switchBreakType(breakType === 'short' ? 'long' : 'short')}
+                disabled={isRunning || intervalHasStartedRef.current}
+                title={isRunning || intervalHasStartedRef.current ? 'Choose the break length before starting the break' : undefined}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 py-1.5 px-2 rounded-md hover:bg-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Use {breakType === 'short' ? 'long' : 'short'} break
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={switchMode}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 py-1.5 px-3 rounded-md hover:bg-accent/60"
+            >
+              Switch to {mode === 'focus' ? 'break' : 'focus'}
+            </button>
+          </div>
         </div>
 
         {/* Task Selector for Association */}
@@ -408,6 +691,70 @@ export function FocusTimer({
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
+          </div>
+
+          <div className="w-full max-w-md border-t border-border/60 pt-4">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(open => !open)}
+              aria-expanded={settingsOpen}
+              aria-controls="timer-settings-panel"
+              className="w-full flex items-center justify-between gap-3 rounded-md px-1 py-1.5 text-left text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <span className="flex items-center gap-2"><Settings2 className="h-3.5 w-3.5" /> Timer settings</span>
+              <span>{settingsOpen ? 'Hide' : 'Customize'}</span>
+            </button>
+
+            {settingsOpen && (
+              <div id="timer-settings-panel" className="mt-3 space-y-3 text-left">
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Set durations in minutes. Changes apply to the next interval and never alter an active or paused timer.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {([
+                    ['focusDurationMinutes', 'Focus duration'],
+                    ['shortBreakDurationMinutes', 'Short break'],
+                    ['longBreakDurationMinutes', 'Long break']
+                  ] as [keyof TimerPreferences, string][]).map(([key, label]) => (
+                    <div key={key} className="space-y-1.5 min-w-0">
+                      <Label htmlFor={`timer-${key}`} className="text-xs">{label}</Label>
+                      <div className="relative">
+                        <Input
+                          id={`timer-${key}`}
+                          type="number"
+                          inputMode="numeric"
+                          min={TIMER_DURATION_MINUTES_MIN}
+                          max={TIMER_DURATION_MINUTES_MAX}
+                          step="1"
+                          value={durationDrafts[key]}
+                          onChange={(event) => {
+                            setDurationDrafts(current => ({ ...current, [key]: event.target.value }));
+                            setSettingsError(null);
+                          }}
+                          aria-describedby={settingsError ? 'timer-settings-error' : undefined}
+                          aria-invalid={Boolean(settingsError)}
+                          className="h-9 pr-11 text-xs tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] text-muted-foreground">min</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {settingsError && (
+                  <p id="timer-settings-error" role="alert" className="text-xs text-destructive">
+                    {settingsError}
+                  </p>
+                )}
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 pt-1">
+                  <Button type="button" variant="ghost" size="sm" onClick={resetTimerPreferences} disabled={isSavingPreferences} className="justify-start px-2 text-xs">
+                    Reset to defaults
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => saveTimerPreferences()} disabled={isSavingPreferences} className="text-xs">
+                    {isSavingPreferences ? 'Saving…' : 'Save durations'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

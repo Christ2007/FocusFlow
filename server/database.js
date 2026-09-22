@@ -53,6 +53,20 @@ export function initDatabase() {
       started_at TEXT NOT NULL,
       completed_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS timer_preferences (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      focus_duration_minutes INTEGER NOT NULL DEFAULT 25,
+      short_break_duration_minutes INTEGER NOT NULL DEFAULT 5,
+      long_break_duration_minutes INTEGER NOT NULL DEFAULT 15
+    );
+
+    INSERT OR IGNORE INTO timer_preferences (
+      id,
+      focus_duration_minutes,
+      short_break_duration_minutes,
+      long_break_duration_minutes
+    ) VALUES (1, 25, 5, 15);
   `);
 
   // Safe, non-destructive column migrations for existing databases

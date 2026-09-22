@@ -225,6 +225,43 @@ function toLocalDateStr(value) {
   return formatDate(d);
 }
 
+// ---------------------------------------------------------------------------
+// Client-timezone aware day boundaries.
+//
+// Timestamps are stored in UTC, but the calendar the user sees is their own.
+// Analytics groups by day, so stored UTC timestamps are shifted by the browser's
+// UTC offset before taking the date part. This keeps data in UTC (nothing is
+// rewritten) while attributing sessions and completed tasks to the day the user
+// actually experienced. Without this, anything logged just after local midnight
+// was counted on the previous day.
+// ---------------------------------------------------------------------------
+const MIN_TZ_OFFSET_MINUTES = -14 * 60;
+const MAX_TZ_OFFSET_MINUTES = 14 * 60;
+
+function normalizeTzOffsetMinutes(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(MIN_TZ_OFFSET_MINUTES, Math.min(MAX_TZ_OFFSET_MINUTES, Math.trunc(parsed)));
+}
+
+// SQLite modifier that moves a UTC timestamp onto the client's wall clock.
+function tzShiftModifier(offsetMinutes) {
+  return `${offsetMinutes >= 0 ? '+' : '-'}${Math.abs(offsetMinutes)} minutes`;
+}
+
+// SQL expression that yields a stored UTC column's date in the client's calendar.
+function tzDateSql(column, offsetMinutes) {
+  return `substr(datetime(${column}, '${tzShiftModifier(offsetMinutes)}'), 1, 10)`;
+}
+
+// JS equivalent of tzDateSql, for values already loaded from the database.
+function toTzDateString(value, offsetMinutes) {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Date(d.getTime() + offsetMinutes * 60000).toISOString().slice(0, 10);
+}
+
 export function completeTask(id) {
   const db = getDb();
 
@@ -481,6 +518,95 @@ export function getTaskCount() {
   return db.prepare('SELECT COUNT(*) as count FROM tasks').get().count;
 }
 
+export const TIMER_DURATION_DEFAULTS = {
+  focusDurationMinutes: 25,
+  shortBreakDurationMinutes: 5,
+  longBreakDurationMinutes: 15
+};
+
+export const TIMER_DURATION_LIMITS = {
+  min: 1,
+  max: 240
+};
+
+function isValidTimerDuration(value) {
+  return Number.isInteger(value) && value >= TIMER_DURATION_LIMITS.min && value <= TIMER_DURATION_LIMITS.max;
+}
+
+function normalizeTimerPreferences(row) {
+  if (!row ||
+    !isValidTimerDuration(row.focus_duration_minutes) ||
+    !isValidTimerDuration(row.short_break_duration_minutes) ||
+    !isValidTimerDuration(row.long_break_duration_minutes)) {
+    return { ...TIMER_DURATION_DEFAULTS };
+  }
+
+  return {
+    focusDurationMinutes: row.focus_duration_minutes,
+    shortBreakDurationMinutes: row.short_break_duration_minutes,
+    longBreakDurationMinutes: row.long_break_duration_minutes
+  };
+}
+
+export function getTimerPreferences() {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM timer_preferences WHERE id = 1').get();
+  const preferences = normalizeTimerPreferences(row);
+  const hasInvalidPreferences = !row ||
+    !isValidTimerDuration(row.focus_duration_minutes) ||
+    !isValidTimerDuration(row.short_break_duration_minutes) ||
+    !isValidTimerDuration(row.long_break_duration_minutes);
+
+  // A manually corrupted or legacy row must never make the timer unusable.
+  // Repair it as it is read so later requests receive the safe defaults too.
+  if (hasInvalidPreferences) {
+    db.prepare(`
+      INSERT INTO timer_preferences (
+        id, focus_duration_minutes, short_break_duration_minutes, long_break_duration_minutes
+      ) VALUES (1, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        focus_duration_minutes = excluded.focus_duration_minutes,
+        short_break_duration_minutes = excluded.short_break_duration_minutes,
+        long_break_duration_minutes = excluded.long_break_duration_minutes
+    `).run(
+      TIMER_DURATION_DEFAULTS.focusDurationMinutes,
+      TIMER_DURATION_DEFAULTS.shortBreakDurationMinutes,
+      TIMER_DURATION_DEFAULTS.longBreakDurationMinutes
+    );
+  }
+
+  return preferences;
+}
+
+export function updateTimerPreferences(preferences) {
+  const db = getDb();
+  const next = {
+    focusDurationMinutes: Number(preferences.focusDurationMinutes),
+    shortBreakDurationMinutes: Number(preferences.shortBreakDurationMinutes),
+    longBreakDurationMinutes: Number(preferences.longBreakDurationMinutes)
+  };
+
+  if (!Object.values(next).every(isValidTimerDuration)) {
+    throw new Error(`Timer durations must be whole minutes between ${TIMER_DURATION_LIMITS.min} and ${TIMER_DURATION_LIMITS.max}.`);
+  }
+
+  db.prepare(`
+    INSERT INTO timer_preferences (
+      id, focus_duration_minutes, short_break_duration_minutes, long_break_duration_minutes
+    ) VALUES (1, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      focus_duration_minutes = excluded.focus_duration_minutes,
+      short_break_duration_minutes = excluded.short_break_duration_minutes,
+      long_break_duration_minutes = excluded.long_break_duration_minutes
+  `).run(
+    next.focusDurationMinutes,
+    next.shortBreakDurationMinutes,
+    next.longBreakDurationMinutes
+  );
+
+  return next;
+}
+
 // Record a focus session and optionally attribute time to a task
 export function recordFocusSession({ taskId, durationMinutes, startedAt, completedAt }) {
   const db = getDb();
@@ -519,11 +645,18 @@ export function recordFocusSession({ taskId, durationMinutes, startedAt, complet
 }
 
 // Get analytics data for Daily, Weekly, or Monthly
-export function getAnalyticsData({ period = 'daily', date }) {
+// `tzOffsetMinutes` is the client's UTC offset (minutes east of UTC, e.g. +120
+// for UTC+2) so day boundaries follow the user's own calendar.
+export function getAnalyticsData({ period = 'daily', date, tzOffsetMinutes }) {
   const db = getDb();
+  const tzOffset = normalizeTzOffsetMinutes(tzOffsetMinutes);
+  const completedDate = tzDateSql('completed_at', tzOffset);
+  const createdDate = tzDateSql('created_at', tzOffset);
+  const startedDate = tzDateSql('started_at', tzOffset);
+
   const today = new Date();
   const todayStr = formatDate(today);
-  const targetDateStr = date || todayStr;
+  const targetDateStr = date || toTzDateString(today, tzOffset) || todayStr;
 
   const parts = targetDateStr.split('-');
   const targetDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -532,19 +665,19 @@ export function getAnalyticsData({ period = 'daily', date }) {
     // Tasks completed on this day
     const completedTasksRows = db.prepare(`
       SELECT * FROM tasks
-      WHERE completed = 1 AND substr(completed_at, 1, 10) = ?
+      WHERE completed = 1 AND ${completedDate} = ?
     `).all(targetDateStr);
 
     // Tasks created on this day
     const createdTasksCount = db.prepare(`
       SELECT COUNT(*) as count FROM tasks
-      WHERE substr(created_at, 1, 10) = ?
+      WHERE ${createdDate} = ?
     `).get(targetDateStr).count;
 
     // Focus sessions for this day
     const focusSessionRows = db.prepare(`
       SELECT * FROM focus_sessions
-      WHERE substr(started_at, 1, 10) = ?
+      WHERE ${startedDate} = ?
     `).all(targetDateStr);
 
     const totalFocusMinutes = focusSessionRows.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
@@ -623,17 +756,17 @@ export function getAnalyticsData({ period = 'daily', date }) {
 
       const completedRows = db.prepare(`
         SELECT * FROM tasks
-        WHERE completed = 1 AND substr(completed_at, 1, 10) = ?
+        WHERE completed = 1 AND ${completedDate} = ?
       `).all(dStr);
 
       const createdCount = db.prepare(`
         SELECT COUNT(*) as count FROM tasks
-        WHERE substr(created_at, 1, 10) = ?
+        WHERE ${createdDate} = ?
       `).get(dStr).count;
 
       const focusMinutes = db.prepare(`
         SELECT SUM(duration_minutes) as sum FROM focus_sessions
-        WHERE substr(started_at, 1, 10) = ?
+        WHERE ${startedDate} = ?
       `).get(dStr).sum || 0;
 
       const compTasks = completedRows.map(rowToTask);
@@ -694,20 +827,20 @@ export function getAnalyticsData({ period = 'daily', date }) {
     const completedTasksRows = db.prepare(`
       SELECT * FROM tasks
       WHERE completed = 1
-        AND substr(completed_at, 1, 10) >= ?
-        AND substr(completed_at, 1, 10) <= ?
+        AND ${completedDate} >= ?
+        AND ${completedDate} <= ?
     `).all(firstDayStr, lastDayStr);
 
     const createdTasksCount = db.prepare(`
       SELECT COUNT(*) as count FROM tasks
-      WHERE substr(created_at, 1, 10) >= ?
-        AND substr(created_at, 1, 10) <= ?
+      WHERE ${createdDate} >= ?
+        AND ${createdDate} <= ?
     `).get(firstDayStr, lastDayStr).count;
 
     const totalFocusMinutes = db.prepare(`
       SELECT SUM(duration_minutes) as sum FROM focus_sessions
-      WHERE substr(started_at, 1, 10) >= ?
-        AND substr(started_at, 1, 10) <= ?
+      WHERE ${startedDate} >= ?
+        AND ${startedDate} <= ?
     `).get(firstDayStr, lastDayStr).sum || 0;
 
     const completedTasks = completedTasksRows.map(rowToTask);
@@ -727,7 +860,7 @@ export function getAnalyticsData({ period = 'daily', date }) {
       const d = new Date(year, month, dayNum);
       const dStr = formatDate(d);
 
-      const dayCompleted = completedTasks.filter(t => t.completedAt && t.completedAt.slice(0, 10) === dStr);
+      const dayCompleted = completedTasks.filter(t => toTzDateString(t.completedAt, tzOffset) === dStr);
       const estMin = dayCompleted.reduce((acc, t) => acc + (t.estimatedDuration || 0), 0);
       const actMin = dayCompleted.reduce((acc, t) => acc + (t.actualDuration || 0), 0);
 
